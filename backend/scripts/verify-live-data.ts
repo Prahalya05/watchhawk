@@ -12,10 +12,10 @@
  * Yahoo needs no key and is always checked. Twelve Data is checked only if
  * TWELVE_DATA_API_KEY is set, and is skipped (not failed) otherwise.
  */
-import { TwelveDataProvider } from "../src/market-data/providers/twelve-data.provider";
-import { YahooProvider } from "../src/market-data/providers/yahoo.provider";
+import { TwelveDataProvider } from "../src/infrastructure/market-data/providers/twelve-data.provider";
+import { YahooProvider } from "../src/infrastructure/market-data/providers/yahoo.provider";
 import { env } from "../src/config/env";
-import type { Quote } from "../src/market-data/provider.interface";
+import type { Quote } from "../src/domain/ports/market-data.port";
 
 // One from each volatility tier, so a tier-specific data problem can't hide.
 const SAMPLE_SYMBOLS = ["RELIANCE", "TMPV", "ETERNAL"];

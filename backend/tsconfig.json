@@ -1,11 +1,14 @@
 {
+  // Editor + `npm run typecheck` config: covers everything that is real TypeScript in
+  // this package, including tests, the Prisma seed and the one-off scripts. Emit settings
+  // live here only so tsconfig.build.json can inherit them; nothing is emitted from this
+  // config (typecheck runs it with --noEmit).
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
     "moduleResolution": "node",
     "lib": ["ES2022"],
     "outDir": "dist",
-    "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,5 +17,5 @@
     "declaration": false,
     "sourceMap": true
   },
-  "include": ["src"]
+  "include": ["src", "tests", "scripts", "prisma"]
 }

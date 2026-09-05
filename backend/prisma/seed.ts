@@ -1,6 +1,6 @@
-import { prisma } from "../src/db/prisma";
-import { redis } from "../src/db/redis";
-import { backfillUniverse } from "../src/market-data/historical-backfill";
+import { prisma } from "../src/infrastructure/db/prisma";
+import { redis } from "../src/infrastructure/db/redis";
+import { backfillUniverse } from "../src/application/market-data/historical-backfill";
 
 // Whole-universe warm-up, run explicitly via `npm run seed` right after a fresh
 // `prisma migrate dev`, so SymbolStats is populated before the first `npm run dev`.

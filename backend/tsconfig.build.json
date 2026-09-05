@@ -1,7 +1,11 @@
 {
-  // Build-only config: same settings as tsconfig.json, minus the test files and their
-  // setup helpers, so `npm run build` produces a dist/ without them. The base
-  // tsconfig.json still includes tests, so editors and `tsc --noEmit` type-check them.
+  // Build-only config: the shipped application and nothing else. Tests, the seed script
+  // and the verification scripts are all excluded via `include`, so `npm run build`
+  // produces a dist/ that mirrors src/ exactly — which is what `rootDir` pins down. The
+  // base tsconfig.json still type-checks those files for editors and `npm run typecheck`.
   "extends": "./tsconfig.json",
-  "exclude": ["**/*.test.ts", "src/test/**"]
+  "compilerOptions": {
+    "rootDir": "src"
+  },
+  "include": ["src"]
 }

@@ -1,12 +1,12 @@
 import { createServer } from "http";
-import { createApp } from "./app";
+import { createApp } from "./interfaces/http/app";
 import { env, effectiveMarketDataMode } from "./config/env";
-import { prisma } from "./db/prisma";
-import { reconcileRefcounts } from "./ingestion/subscription-manager";
-import { backfillMissingHistory } from "./market-data/historical-backfill";
-import { compositeProvider } from "./market-data/composite-provider";
-import { attachWsServer } from "./ws/ws.server";
-import { startScheduledJobs } from "./jobs/scheduler";
+import { prisma } from "./infrastructure/db/prisma";
+import { reconcileRefcounts } from "./application/ingestion/subscription-manager";
+import { backfillMissingHistory } from "./application/market-data/historical-backfill";
+import { compositeProvider } from "./application/market-data/composite-provider";
+import { attachWsServer } from "./interfaces/ws/ws.server";
+import { startScheduledJobs } from "./application/jobs/scheduler";
 
 async function main() {
   await prisma.$connect();
