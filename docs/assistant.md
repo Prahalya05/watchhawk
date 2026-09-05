@@ -1,6 +1,6 @@
 # The assistant
 
-Two features share one module (`backend/src/modules/assistant/`): a natural-language
+Two features share one module (`backend/src/application/assistant/`): a natural-language
 command bar and a plain-English event explainer. Both run on deterministic code by
 default; Google Gemini is used only where the deterministic path cannot produce an
 answer, and every LLM call has a working fallback.
@@ -122,7 +122,7 @@ With no key, an exhausted budget, or a failed call, `text` is the deterministic
 `explanation.summary` and `generatedBy` is `DETERMINISTIC`. The UI labels a model-worded
 answer as **AI-worded**.
 
-## 3. Gemini client (`backend/src/llm/gemini.client.ts`)
+## 3. Gemini client (`backend/src/infrastructure/llm/gemini.client.ts`)
 
 - `fetch`-only, no SDK. Knows how to send a prompt and return text or schema-validated
   JSON; knows nothing about watchlists.
@@ -137,7 +137,7 @@ answer as **AI-worded**.
 - Schema mode uses Google's OpenAPI-subset schema type, kept as a local TypeScript type
   so a mismatch is a compile error rather than a runtime 400.
 
-## 4. Budget guard (`backend/src/llm/llm.budget.ts`)
+## 4. Budget guard (`backend/src/infrastructure/llm/llm.budget.ts`)
 
 - Counters live in Redis (`llm:budget:minute:*`, `llm:budget:day:*`), not process memory,
   so a restart or a second instance does not hand out a fresh allowance. Both keys carry

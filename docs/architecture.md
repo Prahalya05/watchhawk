@@ -90,7 +90,7 @@ render as ₹0.00.
 
 ## 4. Market-data ingestion
 
-### 4.1 Reference-counted subscriptions (`backend/src/ingestion/subscription-manager.ts`)
+### 4.1 Reference-counted subscriptions (`backend/src/application/ingestion/subscription-manager.ts`)
 
 - `subscribe(symbol)` / `unsubscribe(symbol)` `INCR` / `DECR` `market:refcount:<symbol>`;
   the key is deleted at zero.
@@ -99,7 +99,7 @@ render as ₹0.00.
   the stats job all iterate this set.
 - `reconcileRefcounts(map)` rebuilds the whole keyspace from Postgres on boot.
 
-### 4.2 Provider interface (`backend/src/market-data/provider.interface.ts`)
+### 4.2 Provider interface (`backend/src/domain/ports/market-data.port.ts`)
 
 ```ts
 interface MarketDataProvider {
@@ -119,7 +119,7 @@ Three implementations:
 | `TwelveDataProvider` | Live **cross-check**     | Batched, keyed. On the free/basic plan every NSE symbol 404s, so it contributes only when an upgraded key is present. Its absence never blocks a cycle.                                      |
 | `ReplayProvider`     | Fallback / `replay` mode | Fully synthetic, no network. Driven by a virtual clock (`SESSION_LENGTH_MS = 4 min` per simulated trading day) and per-tier volatility profiles. Also serves synthetic history for backfill. |
 
-### 4.3 Composite provider poll cycle (`backend/src/market-data/composite-provider.ts`)
+### 4.3 Composite provider poll cycle (`backend/src/application/market-data/composite-provider.ts`)
 
 `start()` runs one cycle immediately, then `scheduleNextCycle()` re-arms from the
 **cycle's start time** (fixed-rate), so the configured `MARKET_POLL_INTERVAL_MS` is the
@@ -137,7 +137,7 @@ logged every cycle and escalated to a warning as it approaches `STALE_THRESHOLD_
 
 Every path funnels through the single writer.
 
-### 4.4 The single writer (`backend/src/ingestion/market-state-writer.ts`)
+### 4.4 The single writer (`backend/src/application/ingestion/market-state-writer.ts`)
 
 `writeMarketState(primary, secondary)` is the one place event-detection logic lives,
 independent of which provider produced the quote. Per call it:
@@ -153,7 +153,7 @@ independent of which provider produced the quote. Per call it:
 4. Detects a new session by comparing `dayOpen` to the stored value.
 5. `HSET`s the `market:state` hash and `PUBLISH`es a tick (and any discrete event).
 
-### 4.5 Historical backfill (`backend/src/market-data/historical-backfill.ts`)
+### 4.5 Historical backfill (`backend/src/application/market-data/historical-backfill.ts`)
 
 | Entry point                | Trigger                               | Scope                                                              |
 | -------------------------- | ------------------------------------- | ------------------------------------------------------------------ |
@@ -190,7 +190,7 @@ Concurrent devices converge on `max(lastSeenAt)` with no conflict resolution.
 
 Discrete events are filtered to `eventTime > lastSeenAt` before they reach the engine.
 
-### 5.3 Scoring (`backend/src/modules/diff/scoring.ts`)
+### 5.3 Scoring (`backend/src/domain/diff/scoring.ts`)
 
 Thresholds are exported as data (not inlined) so the explanation layer renders the exact
 comparison that ran:
@@ -204,7 +204,7 @@ comparison that ran:
 Guards: `stdevReturn20d` is floored at `0.001`; the √t horizon scale is clamped to
 `[1, 20]` sessions; weekends contribute zero elapsed sessions (no holiday calendar).
 
-### 5.4 Assembly (`backend/src/modules/diff/diff.engine.ts`)
+### 5.4 Assembly (`backend/src/domain/diff/diff.engine.ts`)
 
 `computeSymbolDiff(state, stats, baseline, discreteEvents)` is a **pure function** — no
 Prisma, no Redis. `watchlist.service.ts` fetches everything up front and calls it per
@@ -221,7 +221,7 @@ returned with placeholder numbers, `maxSeverity = NONE`, and an `unavailable` ob
 the client renders a reason instead of a fake quote and the row never outranks a real
 change.
 
-### 5.5 Explanation traces (`backend/src/modules/diff/explain.ts`)
+### 5.5 Explanation traces (`backend/src/domain/diff/explain.ts`)
 
 Each event is emitted with an `EventExplanation` built in the **same pass** that decided
 its severity, from the same locals — so the "why?" panel cannot disagree with the badge.
@@ -245,7 +245,7 @@ None of it is model-generated.
   cannot set an `Authorization` header on a WebSocket). Documented as a local-demo
   pattern only.
 
-## 7. Background jobs (`backend/src/jobs/scheduler.ts`)
+## 7. Background jobs (`backend/src/application/jobs/scheduler.ts`)
 
 | Job                                          | Interval | Scope          | Action                                                                                                                                                                                                |
 | -------------------------------------------- | -------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -281,7 +281,7 @@ paths return `404 {"error":"NOT_FOUND"}` as JSON; a malformed JSON body returns
 | `GET /api/admin/symbols`              | admin key | Every universe symbol with its `market:state` and refcount        |
 | `POST /api/admin/recompute-stats`     | admin key | Runs the stats job now, returns the recomputed symbols            |
 
-## 9. WebSocket protocol (`backend/src/ws/ws.protocol.ts`)
+## 9. WebSocket protocol (`backend/src/interfaces/ws/ws.protocol.ts`)
 
 Connect to `/ws?token=<jwt>`.
 
@@ -295,32 +295,90 @@ Connect to `/ws?token=<jwt>`.
 
 ## 10. Backend source layout
 
-| Path                                                           | Responsibility                                                                    |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `src/config/env.ts`                                            | Zod-validated environment; `effectiveMarketDataMode`, `llmEnabled`                |
-| `src/db/`                                                      | Prisma client, Redis client + subscriber factory                                  |
-| `src/http/async-handler.ts`                                    | Promise-rejection → Express error path wrapper                                    |
-| `src/market-data/provider.interface.ts`                        | `MarketDataProvider`, `Quote`, `DailyBar`                                         |
-| `src/market-data/providers/`                                   | `yahoo`, `twelve-data`, `replay` providers; `virtual-clock`                       |
-| `src/market-data/composite-provider.ts`                        | Poll loop and source orchestration                                                |
-| `src/market-data/divergence.ts`, `staleness.ts`                | Cross-source check, market-hours + staleness sweep                                |
-| `src/market-data/historical-backfill.ts`                       | Boot / on-add / whole-universe history population                                 |
-| `src/market-data/symbol-universe.ts`, `volatility-profiles.ts` | The static universe and per-tier synthetic parameters                             |
-| `src/market-data/command-queue.ts`                             | In-memory queue for admin overrides, freeze set                                   |
-| `src/ingestion/subscription-manager.ts`                        | Refcount subscribe/unsubscribe/scan/reconcile                                     |
-| `src/ingestion/market-state-writer.ts`                         | The single `market:state` writer + event detection                                |
-| `src/modules/auth/`                                            | `auth.service` (bcrypt, JWT), `auth.middleware` (`requireAuth`), routes           |
-| `src/modules/watchlist/`                                       | `watchlist.service` (add/remove/diff/ack), routes, DTO types                      |
-| `src/modules/diff/`                                            | `diff.engine`, `scoring`, `explain`, shared types — all unit-tested               |
-| `src/modules/assistant/`                                       | `command.rules`, `command.service`, `explain.service`, routes                     |
-| `src/modules/symbols/`                                         | Symbol search route                                                               |
-| `src/modules/admin/`                                           | `admin.middleware` (`X-Admin-Key`), trigger / symbols / recompute routes          |
-| `src/llm/`                                                     | `gemini.client` (fetch-only, discriminated result), `llm.budget` (Redis counters) |
-| `src/stats/`                                                   | `stats.service` (compute + store), `stats-job` (periodic run)                     |
-| `src/jobs/scheduler.ts`                                        | Registers the interval jobs                                                       |
-| `src/pubsub/redis-pubsub.ts`                                   | `publish` / `subscribeToChannels`, channel names                                  |
-| `src/ws/`                                                      | `ws.server`, `ws.auth`, `ws.protocol`                                             |
-| `src/app.ts` / `src/server.ts`                                 | Express wiring / startup sequence                                                 |
+The backend is arranged as four concentric rings. The ordering below is the ordering that
+matters: **dependencies point inward**, from volatile detail toward stable business rules,
+and never the other way. Each ring's permitted imports are enforced as lint rules in
+`eslint.config.mjs` — see [ADR 0003](adr/0003-clean-architecture-rings.md) and
+[ADR 0004](adr/0004-lint-enforced-architecture-boundaries.md), and the component diagram in
+[diagrams.md](diagrams.md#level-3--components-inside-the-api-process).
+
+### Entry point and cross-cutting
+
+| Path                | Responsibility                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `src/server.ts`     | Composition root: the startup sequence, and the only entry point                                              |
+| `src/config/env.ts` | Zod-validated environment; `effectiveMarketDataMode`, `llmEnabled`. Readable from every ring except `domain/` |
+
+### `domain/` — business rules
+
+No framework, no driver, no vendor SDK, no environment. This code compiles with Express,
+Prisma, Redis and Gemini all uninstalled, which is exactly what makes it testable without
+any of them.
+
+| Path                                                             | Responsibility                                                              |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `src/domain/diff/`                                               | `diff.engine`, `scoring`, `explain`, shared types — all unit-tested         |
+| `src/domain/market/symbol-universe.ts`, `volatility-profiles.ts` | The static universe and per-tier synthetic parameters                       |
+| `src/domain/market/divergence.ts`                                | Cross-source price disagreement, against the symbol's own tier              |
+| `src/domain/assistant/command.rules.ts`, `assistant.types.ts`    | Deterministic command parser; the closed set of assistant actions           |
+| `src/domain/watchlist/watchlist.types.ts`                        | Watchlist DTOs and domain errors                                            |
+| `src/domain/auth/auth.types.ts`                                  | `JwtPayload`                                                                |
+| `src/domain/ports/market-data.port.ts`                           | `MarketDataProvider`, `Quote`, `DailyBar` — the port the adapters implement |
+
+### `application/` — use cases
+
+Orchestration. Knows the domain and may drive infrastructure; knows nothing about HTTP or
+WebSockets, so every use case is callable from a script, a job or a test.
+
+| Path                                                 | Responsibility                                                |
+| ---------------------------------------------------- | ------------------------------------------------------------- |
+| `src/application/watchlist/watchlist.service.ts`     | Add / remove / diff / ack                                     |
+| `src/application/auth/auth.service.ts`               | bcrypt, JWT issue and verify, `getUserById`                   |
+| `src/application/assistant/`                         | `command.service`, `explain.service`                          |
+| `src/application/ingestion/subscription-manager.ts`  | Refcount subscribe / unsubscribe / scan / reconcile           |
+| `src/application/ingestion/market-state-writer.ts`   | The single `market:state` writer + event detection            |
+| `src/application/market-data/composite-provider.ts`  | Poll loop and source orchestration                            |
+| `src/application/market-data/historical-backfill.ts` | Boot / on-add / whole-universe history population             |
+| `src/application/market-data/staleness.ts`           | Market-hours check and the staleness sweep                    |
+| `src/application/stats/`                             | `stats.service` (compute + store), `stats-job` (periodic run) |
+| `src/application/jobs/scheduler.ts`                  | Registers the interval jobs                                   |
+
+### `infrastructure/` — technology detail
+
+Concrete, swappable, and where every vendor-specific shape is confined.
+
+| Path                                              | Responsibility                                                       |
+| ------------------------------------------------- | -------------------------------------------------------------------- |
+| `src/infrastructure/db/`                          | Prisma client, Redis client + subscriber factory                     |
+| `src/infrastructure/market-data/providers/`       | `yahoo`, `twelve-data`, `replay` providers; `virtual-clock`          |
+| `src/infrastructure/market-data/read-state.ts`    | Redis-backed `market:state` read model                               |
+| `src/infrastructure/market-data/command-queue.ts` | In-memory queue for admin overrides, freeze set                      |
+| `src/infrastructure/llm/gemini.client.ts`         | Fetch-only client, discriminated result                              |
+| `src/infrastructure/llm/llm.budget.ts`            | Redis-backed spend ceilings                                          |
+| `src/infrastructure/llm/intent.schema.ts`         | Gemini's structured-output shape, built from the domain's action set |
+| `src/infrastructure/pubsub/redis-pubsub.ts`       | `publish` / `subscribeToChannels`, channel names                     |
+
+### `interfaces/` — delivery
+
+The outermost, most volatile ring. May use anything except `infrastructure/db` — a route
+that queries a table would know that table's shape.
+
+| Path                                   | Responsibility                                                        |
+| -------------------------------------- | --------------------------------------------------------------------- |
+| `src/interfaces/http/app.ts`           | Express wiring, `/health`, JSON 404 and error handlers                |
+| `src/interfaces/http/async-handler.ts` | Promise-rejection → Express error path wrapper                        |
+| `src/interfaces/http/routes/`          | `auth`, `watchlist`, `symbols`, `admin`, `assistant`                  |
+| `src/interfaces/http/middleware/`      | `auth.middleware` (`requireAuth`), `admin.middleware` (`X-Admin-Key`) |
+| `src/interfaces/http/express.d.ts`     | `Request.auth` augmentation                                           |
+| `src/interfaces/ws/`                   | `ws.server`, `ws.auth`, `ws.protocol`                                 |
+
+### `tests/` — mirrors the rings
+
+| Path                 | Contents                                                             |
+| -------------------- | -------------------------------------------------------------------- |
+| `tests/unit/`        | Mirrors the ring under test; no I/O, runs in seconds                 |
+| `tests/integration/` | Boots the real Express app over real HTTP                            |
+| `tests/setup/env.ts` | Vitest `setupFile` supplying the environment `config/env.ts` demands |
 
 ## 11. Frontend source layout
 

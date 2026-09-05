@@ -44,7 +44,7 @@ at the relevant point in the code. They are grouped by area.
 - **"52-week" high/low is actually a ~90-day window.** `SymbolStats.historyDays` records
   the true figure, and the UI shows it, rather than mislabeling the window.
 - **Severity thresholds are starting values**, not tuned against real data. They are
-  centralized in `backend/src/modules/diff/scoring.ts`.
+  centralized in `backend/src/domain/diff/scoring.ts`.
 - **`NEWS` / `RATING_CHANGE` / `CORPORATE_ACTION` events are demo-triggered only.** They
   enter through the admin control panel's command queue, not a news provider. The event
   model, severity scoring and diff path around them are real; the feed is not.
