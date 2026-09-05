@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String            @id @default(uuid())
+  email          String            @unique
+  passwordHash   String
+  createdAt      DateTime          @default(now())
+  watchlistItems WatchlistItem[]
+  symbolStates   UserSymbolState[]
+}
+
+model WatchlistItem {
+  id      String   @id @default(uuid())
+  userId  String
+  symbol  String
+  addedAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@index([userId])
+  @@index([symbol])
+}
+
+model UserSymbolState {
+  id              String   @id @default(uuid())
+  userId          String
+  symbol          String
+  lastSeenAt      DateTime
+  lastSeenPrice   Float
+  lastSeenVolume  Float
+  lastSeen52wHigh Float
+  lastSeen52wLow  Float
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@index([symbol])
+}
+
+model SymbolEvent {
+  id        String    @id @default(uuid())
+  symbol    String
+  eventType EventType
+  eventTime DateTime
+  severity  Severity
+  payload   Json
+  createdAt DateTime  @default(now())
+
+  @@index([symbol, eventTime])
+  @@index([symbol, eventType, eventTime])
+}
+
+model SymbolStats {
+  symbol             String   @id
+  avgVolume20d       Float
+  stdevReturn20d     Float
+  high52w            Float
+  low52w             Float
+  avgOvernightGapPct Float
+  historyDays        Int
+  computedAt         DateTime @default(now())
+}
+
+enum EventType {
+  PRICE_MOVE
+  VOLUME_SPIKE
+  FIFTY_TWO_WEEK_EXTREME
+  GAP_OPEN
+  NEWS
+  RATING_CHANGE
+  CORPORATE_ACTION
+}
+
+enum Severity {
+  MINOR
+  NOTABLE
+  CRITICAL
+}

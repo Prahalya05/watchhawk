@@ -1,0 +1,7 @@
+{
+  // Build-only config: same settings as tsconfig.json, minus the test files and their
+  // setup helpers, so `npm run build` produces a dist/ without them. The base
+  // tsconfig.json still includes tests, so editors and `tsc --noEmit` type-check them.
+  "extends": "./tsconfig.json",
+  "exclude": ["**/*.test.ts", "src/test/**"]
+}
