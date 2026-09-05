@@ -1,12 +1,12 @@
 import { llmEnabled } from "../../config/env";
 import { generateJson } from "../../infrastructure/llm/gemini.client";
+import { INTENT_RESPONSE_SCHEMA } from "../../infrastructure/llm/intent.schema";
 import { SYMBOL_MAP, SYMBOL_UNIVERSE, searchSymbols } from "../../domain/market/symbol-universe";
 import * as watchlistService from "../watchlist/watchlist.service";
 import { AlreadyWatchedError, NotWatchedError, UnknownSymbolError } from "../../domain/watchlist/watchlist.types";
 import { parseWithRules, resolveSymbol } from "../../domain/assistant/command.rules";
 import {
   CONFIRMATION_REQUIRED,
-  INTENT_RESPONSE_SCHEMA,
   rawIntentSchema,
   type AssistantIntent,
   type AssistantResult,

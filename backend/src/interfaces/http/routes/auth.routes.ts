@@ -1,9 +1,14 @@
 import { Router } from "express";
 import { z } from "zod";
-import { prisma } from "../../../infrastructure/db/prisma";
 import { asyncHandler } from "../async-handler";
 import { requireAuth } from "../middleware/auth.middleware";
-import { EmailTakenError, InvalidCredentialsError, loginUser, registerUser } from "../../../application/auth/auth.service";
+import {
+  EmailTakenError,
+  InvalidCredentialsError,
+  getUserById,
+  loginUser,
+  registerUser,
+} from "../../../application/auth/auth.service";
 
 export const authRouter = Router();
 
@@ -56,11 +61,11 @@ authRouter.get(
   "/me",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const user = await prisma.user.findUnique({ where: { id: req.auth!.userId } });
+    const user = await getUserById(req.auth!.userId);
     // A signature-valid token for a deleted user is an unusable session, so it gets the
     // same 401 the client already knows how to clear rather than a 404 it would treat
     // as a transient fetch failure and keep retrying with.
     if (!user) return res.status(401).json({ error: "USER_NOT_FOUND" });
-    res.json({ id: user.id, email: user.email, createdAt: user.createdAt });
+    res.json(user);
   }),
 );

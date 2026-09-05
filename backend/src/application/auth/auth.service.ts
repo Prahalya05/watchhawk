@@ -56,6 +56,16 @@ export async function loginUser(rawEmail: string, password: string) {
   return { user: { id: user.id, email: user.email }, token: issueToken(user.id, user.email) };
 }
 
+// The session-restore lookup behind GET /api/auth/me. It lives here rather than in the
+// route because the route has no business knowing the User table's shape: it asks for a
+// user and renders one. `null` is the honest answer for a signature-valid token whose
+// user no longer exists, and the caller decides what status that deserves.
+export async function getUserById(userId: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return null;
+  return { id: user.id, email: user.email, createdAt: user.createdAt };
+}
+
 function issueToken(userId: string, email: string): string {
   const payload: JwtPayload = { userId, email };
   return jwt.sign(payload, env.JWT_SECRET, { expiresIn: TOKEN_TTL });

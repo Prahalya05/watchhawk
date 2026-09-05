@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { GeminiSchema } from "../../infrastructure/llm/gemini.client";
 
 // The assistant's whole vocabulary. Keeping it a closed set is the safety property that
 // matters: a natural-language string is turned into one of these and nothing else, so
@@ -44,42 +43,6 @@ export interface AssistantIntent {
   reason?: string;
 }
 
-// Mirrors rawIntentSchema for Gemini's structured-output mode. The two are kept adjacent
-// on purpose: the model is asked for exactly the shape the validator accepts, and the
-// validator still runs on the result — the schema is a hint to the model, never a
-// guarantee about what arrives.
-export const INTENT_RESPONSE_SCHEMA: GeminiSchema = {
-  type: "OBJECT",
-  properties: {
-    action: {
-      type: "STRING",
-      enum: [...ASSISTANT_ACTIONS],
-      description: "The single operation the user is asking for.",
-    },
-    symbol: {
-      type: "STRING",
-      description: "NSE ticker the command targets, if any. Prefer the ticker over the company name.",
-      nullable: true,
-    },
-    symbols: {
-      type: "ARRAY",
-      items: { type: "STRING" },
-      description: "Multiple tickers, when the command names more than one.",
-      nullable: true,
-    },
-    query: {
-      type: "STRING",
-      description: "Free-text search terms, for SEARCH_SYMBOLS only.",
-      nullable: true,
-    },
-    reason: {
-      type: "STRING",
-      description: "For UNKNOWN only: a short plain-English note on why the command could not be mapped.",
-      nullable: true,
-    },
-  },
-  required: ["action"],
-};
 
 export type InterpretedBy = "RULES" | "GEMINI";
 export type ExecutionStatus = "EXECUTED" | "NEEDS_CONFIRMATION" | "REJECTED";
