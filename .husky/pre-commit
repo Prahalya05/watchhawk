@@ -1,0 +1,4 @@
+# Cheap checks only. A pre-commit hook that runs the full suite gets bypassed with
+# --no-verify within a week, so this stays at seconds: lint and format the files actually
+# staged, and nothing else. Types and tests are CI's job.
+npx lint-staged
