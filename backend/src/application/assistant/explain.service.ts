@@ -47,18 +47,18 @@ export async function narrateExplanation(
 Event type: ${eventType}
 
 ${JSON.stringify(
-    {
-      rule: explanation.rule,
-      summary: explanation.summary,
-      inputs: explanation.inputs,
-      steps: explanation.steps,
-      thresholds: explanation.thresholds,
-      provenance: explanation.provenance,
-      caveats: explanation.caveats,
-    },
-    null,
-    2,
-  )}`;
+  {
+    rule: explanation.rule,
+    summary: explanation.summary,
+    inputs: explanation.inputs,
+    steps: explanation.steps,
+    thresholds: explanation.thresholds,
+    provenance: explanation.provenance,
+    caveats: explanation.caveats,
+  },
+  null,
+  2,
+)}`;
 
   const response = await generateText({ systemInstruction: SYSTEM_INSTRUCTION, prompt, maxOutputTokens: 300 });
   if (!response.ok) {

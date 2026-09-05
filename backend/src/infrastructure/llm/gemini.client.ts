@@ -12,17 +12,10 @@ import { tryConsume, readBudget, type BudgetStatus } from "./llm.budget";
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export type GeminiFailureReason =
-  | "NO_API_KEY"
-  | "BUDGET_EXHAUSTED"
-  | "TIMEOUT"
-  | "RATE_LIMITED"
-  | "HTTP_ERROR"
-  | "EMPTY_RESPONSE"
-  | "INVALID_JSON";
+  "NO_API_KEY" | "BUDGET_EXHAUSTED" | "TIMEOUT" | "RATE_LIMITED" | "HTTP_ERROR" | "EMPTY_RESPONSE" | "INVALID_JSON";
 
 export type GeminiResult<T> =
-  | { ok: true; value: T; budget: BudgetStatus }
-  | { ok: false; reason: GeminiFailureReason; detail: string };
+  { ok: true; value: T; budget: BudgetStatus } | { ok: false; reason: GeminiFailureReason; detail: string };
 
 // Google's structured-output schema is an OpenAPI subset, not JSON Schema: uppercase
 // type names, no $ref, no additionalProperties. Kept as a local type so a mismatch is a

@@ -75,14 +75,14 @@ The project was built for Groww Code 2026.
 
 ## Technology
 
-| Layer        | Components |
-| ------------ | --------- |
-| Backend      | Node, Express 4, TypeScript, `ws` |
-| Persistence  | PostgreSQL 16 via Prisma 5 (durable per-user state); Redis 7 via ioredis (shared cache + pub/sub + LLM budget) |
-| Market data  | Yahoo Finance (live primary), Twelve Data (live cross-check), synthetic replay engine |
-| Frontend     | React 18, Vite 5, TanStack Query 5, React Router 6, Tailwind CSS 3 |
-| Assistant    | Google Gemini (`generateContent`), optional; deterministic parser and computed explanations otherwise |
-| Tests        | Vitest (diff engine, scoring, explanation traces, command parser, auth) |
+| Layer       | Components                                                                                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------- |
+| Backend     | Node, Express 4, TypeScript, `ws`                                                                              |
+| Persistence | PostgreSQL 16 via Prisma 5 (durable per-user state); Redis 7 via ioredis (shared cache + pub/sub + LLM budget) |
+| Market data | Yahoo Finance (live primary), Twelve Data (live cross-check), synthetic replay engine                          |
+| Frontend    | React 18, Vite 5, TanStack Query 5, React Router 6, Tailwind CSS 3                                             |
+| Assistant   | Google Gemini (`generateContent`), optional; deterministic parser and computed explanations otherwise          |
+| Tests       | Vitest (diff engine, scoring, explanation traces, command parser, auth)                                        |
 
 ## Running the project
 
@@ -103,9 +103,9 @@ environment reference, authentication model and the demo control panel — is in
 
 ## Documentation
 
-| Document | Contents |
-| -------- | -------- |
-| [docs/setup.md](docs/setup.md) | Prerequisites, backend and frontend setup, npm scripts, full environment-variable reference, authentication model, demo control panel |
-| [docs/architecture.md](docs/architecture.md) | Process startup, data stores, ingestion pipeline, provider composition, the snapshot/diff model, real-time delivery, background jobs, HTTP API and WebSocket protocol, source layout |
-| [docs/assistant.md](docs/assistant.md) | Command-bar pipeline, intent set, the explanation-trace structure, the Gemini client and budget guard, configuration |
-| [docs/scope-and-limitations.md](docs/scope-and-limitations.md) | Deliberate simplifications and known gaps, grouped by area; each is also marked in code |
+| Document                                                       | Contents                                                                                                                                                                             |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [docs/setup.md](docs/setup.md)                                 | Prerequisites, backend and frontend setup, npm scripts, full environment-variable reference, authentication model, demo control panel                                                |
+| [docs/architecture.md](docs/architecture.md)                   | Process startup, data stores, ingestion pipeline, provider composition, the snapshot/diff model, real-time delivery, background jobs, HTTP API and WebSocket protocol, source layout |
+| [docs/assistant.md](docs/assistant.md)                         | Command-bar pipeline, intent set, the explanation-trace structure, the Gemini client and budget guard, configuration                                                                 |
+| [docs/scope-and-limitations.md](docs/scope-and-limitations.md) | Deliberate simplifications and known gaps, grouped by area; each is also marked in code                                                                                              |

@@ -42,9 +42,7 @@ export const env = parsed.data;
 // If no Twelve Data key is configured, there is nothing "live" to fall back FROM,
 // so force replay mode rather than starting a composite provider that can never succeed.
 export const effectiveMarketDataMode: "live" | "replay" =
-  env.MARKET_DATA_MODE === "live" && env.TWELVE_DATA_API_KEY.length === 0
-    ? "replay"
-    : env.MARKET_DATA_MODE;
+  env.MARKET_DATA_MODE === "live" && env.TWELVE_DATA_API_KEY.length === 0 ? "replay" : env.MARKET_DATA_MODE;
 
 // Same shape of decision as effectiveMarketDataMode above: a missing key is a supported
 // configuration, not an error, so it is resolved once here rather than re-checked at

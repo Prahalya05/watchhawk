@@ -17,7 +17,10 @@ const VERBS: Array<{ action: AssistantIntent["action"]; words: string[] }> = [
   { action: "ACK_SYMBOL", words: ["ack", "acknowledge", "dismiss", "clear", "mark as read", "mark read", "seen"] },
   { action: "EXPLAIN_SYMBOL", words: ["explain", "why", "how come", "reason for", "justify"] },
   { action: "SEARCH_SYMBOLS", words: ["search", "find", "look up", "lookup"] },
-  { action: "SHOW_WATCHLIST", words: ["show", "list", "what changed", "whats changed", "what's new", "whats new", "catch me up", "refresh"] },
+  {
+    action: "SHOW_WATCHLIST",
+    words: ["show", "list", "what changed", "whats changed", "what's new", "whats new", "catch me up", "refresh"],
+  },
 ];
 
 const ALL_WORDS = ["all", "everything", "every symbol", "them all"];
@@ -25,10 +28,48 @@ const ALL_WORDS = ["all", "everything", "every symbol", "them all"];
 // Words that look like tickers but are just English. Without this, "clear all" resolves
 // "ALL" against the universe and "show me LT" competes with the verb list.
 const STOPWORDS = new Set([
-  "ADD", "THE", "MY", "TO", "FROM", "AND", "FOR", "ME", "PLEASE", "ALL", "NEW",
-  "SHOW", "LIST", "WHY", "HOW", "WHAT", "IS", "IT", "ON", "OF", "IN", "A", "AN",
-  "WATCH", "TRACK", "REMOVE", "DROP", "CLEAR", "DISMISS", "EXPLAIN", "SEARCH", "FIND",
-  "FLAGGED", "CHANGED", "ABOUT", "THAT", "THIS", "WITH", "WAS", "ARE", "DID", "DOES",
+  "ADD",
+  "THE",
+  "MY",
+  "TO",
+  "FROM",
+  "AND",
+  "FOR",
+  "ME",
+  "PLEASE",
+  "ALL",
+  "NEW",
+  "SHOW",
+  "LIST",
+  "WHY",
+  "HOW",
+  "WHAT",
+  "IS",
+  "IT",
+  "ON",
+  "OF",
+  "IN",
+  "A",
+  "AN",
+  "WATCH",
+  "TRACK",
+  "REMOVE",
+  "DROP",
+  "CLEAR",
+  "DISMISS",
+  "EXPLAIN",
+  "SEARCH",
+  "FIND",
+  "FLAGGED",
+  "CHANGED",
+  "ABOUT",
+  "THAT",
+  "THIS",
+  "WITH",
+  "WAS",
+  "ARE",
+  "DID",
+  "DOES",
 ]);
 
 // Generic words that appear inside real company names and would otherwise resolve to a
@@ -36,9 +77,27 @@ const STOPWORDS = new Set([
 // on the word "company" and silently add TITAN. These are excluded from name-fragment
 // matching only — a real ticker is still matched exactly, so nothing legitimate is lost.
 const GENERIC_NAME_WORDS = new Set([
-  "COMPANY", "LIMITED", "LTD", "CORP", "CORPORATION", "INDUSTRIES", "SERVICES",
-  "FINANCIAL", "FINANCE", "ENTERPRISES", "TECHNOLOGIES", "CONSULTANCY", "COMMUNICATIONS",
-  "CATERING", "TOURISM", "NATIONAL", "INDIAN", "INDIA", "EXCHANGE", "GROUP", "HOLDINGS",
+  "COMPANY",
+  "LIMITED",
+  "LTD",
+  "CORP",
+  "CORPORATION",
+  "INDUSTRIES",
+  "SERVICES",
+  "FINANCIAL",
+  "FINANCE",
+  "ENTERPRISES",
+  "TECHNOLOGIES",
+  "CONSULTANCY",
+  "COMMUNICATIONS",
+  "CATERING",
+  "TOURISM",
+  "NATIONAL",
+  "INDIAN",
+  "INDIA",
+  "EXCHANGE",
+  "GROUP",
+  "HOLDINGS",
 ]);
 
 // Name fragments have to look like the start of a word in the company name, not merely
@@ -72,9 +131,7 @@ export function resolveSymbol(raw: string): SymbolResolution {
 
   if (GENERIC_NAME_WORDS.has(upper)) return { symbol: null, ambiguous: [] };
 
-  const matches = SYMBOL_UNIVERSE.filter(
-    (s) => s.symbol.startsWith(upper) || matchesNameFragment(s.name, upper),
-  );
+  const matches = SYMBOL_UNIVERSE.filter((s) => s.symbol.startsWith(upper) || matchesNameFragment(s.name, upper));
   if (matches.length === 1) return { symbol: matches[0].symbol, ambiguous: [] };
   if (matches.length > 1) {
     // A ticker typed in full always wins over its own prefix matches: "TATAMOTORS"

@@ -50,12 +50,7 @@ function makeBaseline(overrides: Partial<UserSymbolBaseline> = {}): UserSymbolBa
   return { lastSeenAt: new Date(NOW - 2 * HOUR), lastSeenPrice: 100, lastSeenVolume: 0, ...overrides };
 }
 
-function diff(
-  state = makeState(),
-  stats = makeStats(),
-  baseline = makeBaseline(),
-  events: DiscreteEventInput[] = [],
-) {
+function diff(state = makeState(), stats = makeStats(), baseline = makeBaseline(), events: DiscreteEventInput[] = []) {
   return computeSymbolDiff(state, stats, baseline, events);
 }
 
@@ -104,9 +99,9 @@ describe("trace agrees with the decision", () => {
       `ratio >= ${VOLUME_RATIO_THRESHOLDS.minor}`,
     ]);
 
-    const gap = diff(
-      makeState({ dayOpen: 103, prevClose: 100, sessionOpenedAt: NOW - HOUR }),
-    ).events.find((e) => e.type === "GAP_OPEN");
+    const gap = diff(makeState({ dayOpen: 103, prevClose: 100, sessionOpenedAt: NOW - HOUR })).events.find(
+      (e) => e.type === "GAP_OPEN",
+    );
     expect(gap?.explanation.thresholds.map((t) => t.test)).toEqual([
       `ratio >= ${GAP_RATIO_THRESHOLDS.critical}`,
       `ratio >= ${GAP_RATIO_THRESHOLDS.notable}`,

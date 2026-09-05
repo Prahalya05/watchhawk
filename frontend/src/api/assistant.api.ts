@@ -11,11 +11,7 @@ export async function fetchAssistantStatus(): Promise<AssistantStatus> {
   return data;
 }
 
-export async function explainEvent(
-  symbol: string,
-  eventType: string,
-  occurredAt?: string,
-): Promise<ExplainResponse> {
+export async function explainEvent(symbol: string, eventType: string, occurredAt?: string): Promise<ExplainResponse> {
   const { data } = await apiClient.post<ExplainResponse>("/assistant/explain", { symbol, eventType, occurredAt });
   return data;
 }

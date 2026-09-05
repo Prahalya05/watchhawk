@@ -46,12 +46,7 @@ function makeBaseline(overrides: Partial<UserSymbolBaseline> = {}): UserSymbolBa
   };
 }
 
-function diff(
-  state = makeState(),
-  stats = makeStats(),
-  baseline = makeBaseline(),
-  events: DiscreteEventInput[] = []
-) {
+function diff(state = makeState(), stats = makeStats(), baseline = makeBaseline(), events: DiscreteEventInput[] = []) {
   return computeSymbolDiff(state, stats, baseline, events);
 }
 
@@ -195,10 +190,7 @@ describe("discrete events", () => {
   });
 
   it("keeps a break in the opposite direction — that is a different fact", () => {
-    const result = diff(makeState(), makeStats(), makeBaseline(), [
-      extreme("HIGH", 30),
-      extreme("LOW", 10, 80),
-    ]);
+    const result = diff(makeState(), makeStats(), makeBaseline(), [extreme("HIGH", 30), extreme("LOW", 10, 80)]);
 
     expect(result.events.filter((e) => e.type === "FIFTY_TWO_WEEK_EXTREME")).toHaveLength(2);
   });
@@ -262,7 +254,7 @@ describe("ranking, capping and overall severity", () => {
       makeState(),
       makeStats(),
       makeBaseline(),
-      Array.from({ length: 5 }, (_, i) => news(i + 1, "MINOR"))
+      Array.from({ length: 5 }, (_, i) => news(i + 1, "MINOR")),
     );
 
     expect(result.events).toHaveLength(5);
@@ -362,11 +354,9 @@ describe("PRICE_MOVE scales with how long the user was away", () => {
 
   it("does not blow up on a symbol whose measured volatility is zero", () => {
     // Pre-fix this divided by zero: z = Infinity, CRITICAL on a 0.5% move, forever.
-    const event = diff(
-      makeState({ price: 100.5 }),
-      makeStats({ stdevReturn20d: 0 }),
-      makeBaseline(),
-    ).events.find((e) => e.type === "PRICE_MOVE");
+    const event = diff(makeState({ price: 100.5 }), makeStats({ stdevReturn20d: 0 }), makeBaseline()).events.find(
+      (e) => e.type === "PRICE_MOVE",
+    );
 
     expect(Number.isFinite(event?.detail.zScore as number)).toBe(true);
     expect(event?.detail.zScore).toBeCloseTo(5, 6); // 0.5% over the 0.1% floor

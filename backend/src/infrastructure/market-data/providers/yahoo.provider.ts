@@ -91,9 +91,7 @@ export class YahooProvider implements MarketDataProvider {
       }
     };
 
-    await Promise.all(
-      Array.from({ length: Math.min(MAX_CONCURRENT_REQUESTS, symbols.length) }, () => worker()),
-    );
+    await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT_REQUESTS, symbols.length) }, () => worker()));
     return results.filter((q): q is Quote => q !== null);
   }
 
@@ -150,8 +148,8 @@ export class YahooProvider implements MarketDataProvider {
     if (!result) return [];
 
     const timestamps: number[] = result.timestamp ?? [];
-    const quote: { open: number[]; high: number[]; low: number[]; close: number[]; volume: number[] } =
-      result.indicators?.quote?.[0] ?? { open: [], high: [], low: [], close: [], volume: [] };
+    const quote: { open: number[]; high: number[]; low: number[]; close: number[]; volume: number[] } = result
+      .indicators?.quote?.[0] ?? { open: [], high: [], low: [], close: [], volume: [] };
     const bars: DailyBar[] = [];
 
     for (let i = 0; i < timestamps.length; i++) {

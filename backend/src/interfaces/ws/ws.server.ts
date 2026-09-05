@@ -77,7 +77,12 @@ export function attachWsServer(httpServer: HttpServer): WebSocketServer {
   });
 
   wss.on("connection", (ws) => {
-    const conn: ConnectionState = { socket: ws, subscribedSymbols: new Set(), lastPongAt: Date.now(), lastTickSentAt: new Map() };
+    const conn: ConnectionState = {
+      socket: ws,
+      subscribedSymbols: new Set(),
+      lastPongAt: Date.now(),
+      lastTickSentAt: new Map(),
+    };
     connections.add(conn);
 
     ws.on("message", (raw) => {

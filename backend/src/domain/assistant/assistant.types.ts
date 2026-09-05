@@ -43,7 +43,6 @@ export interface AssistantIntent {
   reason?: string;
 }
 
-
 export type InterpretedBy = "RULES" | "GEMINI";
 export type ExecutionStatus = "EXECUTED" | "NEEDS_CONFIRMATION" | "REJECTED";
 

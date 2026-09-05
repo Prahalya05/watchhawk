@@ -12,10 +12,7 @@ export async function publish(channel: string, payload: unknown): Promise<void> 
 // One dedicated subscriber connection shared by whoever needs to listen (the WS server).
 // ioredis puts a connection into subscriber-only mode on first SUBSCRIBE call, so this
 // must never share a connection with command traffic.
-export function subscribeToChannels(
-  channels: string[],
-  onMessage: (channel: string, payload: unknown) => void
-) {
+export function subscribeToChannels(channels: string[], onMessage: (channel: string, payload: unknown) => void) {
   const sub = createSubscriber();
   sub.subscribe(...channels);
   sub.on("message", (channel, message) => {

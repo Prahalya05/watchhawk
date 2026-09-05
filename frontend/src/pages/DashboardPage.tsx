@@ -33,9 +33,7 @@ export default function DashboardPage() {
   // event under the open drawer, this goes null and the drawer closes itself rather than
   // explaining something the user is no longer being shown.
   const explainingEntry = explaining ? data?.entries.find((e) => e.symbol === explaining.symbol) : undefined;
-  const resolvedEvent = explaining
-    ? explainingEntry?.events.find((e) => eventKey(e) === explaining.key)
-    : undefined;
+  const resolvedEvent = explaining ? explainingEntry?.events.find((e) => eventKey(e) === explaining.key) : undefined;
   const explainingEvent = explaining && resolvedEvent ? { symbol: explaining.symbol, event: resolvedEvent } : null;
 
   return (
@@ -78,7 +76,9 @@ export default function DashboardPage() {
 
       <div className="rounded-lg border border-gray-900">
         {isLoading && <p className="p-8 text-sm text-gray-500">Loading…</p>}
-        {error && <p className="p-8 text-sm text-red-400">{getApiErrorMessage(error, "Couldn't load your watchlist.")}</p>}
+        {error && (
+          <p className="p-8 text-sm text-red-400">{getApiErrorMessage(error, "Couldn't load your watchlist.")}</p>
+        )}
         {data && (
           <WatchlistTable
             entries={data.entries}
@@ -91,7 +91,11 @@ export default function DashboardPage() {
       {showAddModal && <AddSymbolModal onClose={() => setShowAddModal(false)} />}
 
       {explainingEvent && (
-        <ExplainDrawer symbol={explainingEvent.symbol} event={explainingEvent.event} onClose={() => setExplaining(null)} />
+        <ExplainDrawer
+          symbol={explainingEvent.symbol}
+          event={explainingEvent.event}
+          onClose={() => setExplaining(null)}
+        />
       )}
     </div>
   );

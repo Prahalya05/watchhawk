@@ -56,9 +56,7 @@ async function main() {
 
   if (effectiveMarketDataMode === "live") {
     console.log("[server] starting background historical backfill");
-    backfillMissingHistory().catch((err) =>
-      console.error("[server] background history backfill failed:", err),
-    );
+    backfillMissingHistory().catch((err) => console.error("[server] background history backfill failed:", err));
   }
 }
 

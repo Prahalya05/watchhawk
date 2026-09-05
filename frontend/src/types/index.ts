@@ -1,13 +1,7 @@
 export type Severity = "MINOR" | "NOTABLE" | "CRITICAL" | "NONE";
 
 export type EventType =
-  | "PRICE_MOVE"
-  | "VOLUME_SPIKE"
-  | "FIFTY_TWO_WEEK_EXTREME"
-  | "GAP_OPEN"
-  | "NEWS"
-  | "RATING_CHANGE"
-  | "CORPORATE_ACTION";
+  "PRICE_MOVE" | "VOLUME_SPIKE" | "FIFTY_TWO_WEEK_EXTREME" | "GAP_OPEN" | "NEWS" | "RATING_CHANGE" | "CORPORATE_ACTION";
 
 export type MarketStatus = "OPEN" | "CLOSED";
 export type DataMode = "LIVE" | "REPLAY";

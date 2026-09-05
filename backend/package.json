@@ -14,7 +14,10 @@
     "seed": "tsx prisma/seed.ts",
     "verify:live": "tsx scripts/verify-live-data.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",

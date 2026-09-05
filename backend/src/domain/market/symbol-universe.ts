@@ -24,6 +24,11 @@ export interface UniverseSymbol {
 // replay mode (live mode overwrites them from the real backfill), but keeping them
 // roughly honest matters: a demo showing RELIANCE at ₹2,950 when it trades near ₹1,320
 // undermines the thing it is trying to demonstrate.
+// The one-row-per-symbol layout is the point: this is a table, read by scanning down the
+// volatilityTier and basePrice columns to check that a tier is populated or that a price
+// has not gone stale. Reflowed to one field per line it becomes 245 lines and that scan
+// is gone, so formatting is suppressed here rather than widened for the whole repo.
+// prettier-ignore
 export const SYMBOL_UNIVERSE: UniverseSymbol[] = [
   // LOW volatility — large-cap
   { symbol: "RELIANCE", name: "Reliance Industries", sector: "Energy", volatilityTier: "LOW", basePrice: 1322, baseDailyVolume: 6_000_000 },
@@ -71,7 +76,5 @@ export const SYMBOL_MAP = new Map(SYMBOL_UNIVERSE.map((s) => [s.symbol, s]));
 export function searchSymbols(query: string): UniverseSymbol[] {
   const q = query.trim().toUpperCase();
   if (!q) return SYMBOL_UNIVERSE.slice(0, 10);
-  return SYMBOL_UNIVERSE.filter(
-    (s) => s.symbol.includes(q) || s.name.toUpperCase().includes(q)
-  ).slice(0, 20);
+  return SYMBOL_UNIVERSE.filter((s) => s.symbol.includes(q) || s.name.toUpperCase().includes(q)).slice(0, 20);
 }

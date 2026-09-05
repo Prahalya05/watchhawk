@@ -36,7 +36,11 @@ export async function writeMarketState(primary: Quote, secondary: Quote | null):
       effectivePrimary = { ...effectivePrimary, price: effectivePrimary.price * (1 + direction * 0.05) };
     } else if (cmd.type === "DIVERGE") {
       const fabricatedSecondaryPrice = effectivePrimary.price * (1 + (Math.random() > 0.5 ? 1 : -1) * 0.03);
-      effectiveSecondary = { ...effectivePrimary, price: fabricatedSecondaryPrice, source: effectiveSecondary?.source ?? "YAHOO" };
+      effectiveSecondary = {
+        ...effectivePrimary,
+        price: fabricatedSecondaryPrice,
+        source: effectiveSecondary?.source ?? "YAHOO",
+      };
       forcedDivergence = {
         isDivergent: true,
         divergencePct: Math.abs(effectivePrimary.price - fabricatedSecondaryPrice) / effectivePrimary.price,
@@ -187,7 +191,7 @@ export async function writeDiscreteEvent(
   symbol: string,
   eventType: "NEWS" | "RATING_CHANGE" | "CORPORATE_ACTION" | "FIFTY_TWO_WEEK_EXTREME",
   severity: "MINOR" | "NOTABLE" | "CRITICAL",
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ): Promise<void> {
   const event = await prisma.symbolEvent.create({
     data: { symbol, eventType, severity, eventTime: new Date(), payload: payload as Prisma.InputJsonValue },

@@ -30,7 +30,6 @@ export function createApp() {
     res.status(404).json({ error: "NOT_FOUND" });
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     // express.json() rejects a malformed body by throwing here. That is the client's
     // mistake, not the server's, and reporting it as 500 sends the client retrying

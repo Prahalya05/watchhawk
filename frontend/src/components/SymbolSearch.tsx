@@ -8,7 +8,9 @@ export default function SymbolSearch({ onSelect }: { onSelect: (symbol: string) 
 
   useEffect(() => {
     const handle = setTimeout(() => {
-      searchSymbols(query).then(setResults).catch(() => setResults([]));
+      searchSymbols(query)
+        .then(setResults)
+        .catch(() => setResults([]));
     }, 200);
     return () => clearTimeout(handle);
   }, [query]);

@@ -62,27 +62,27 @@ through the system, and where each responsibility lives in the source tree.
 
 ### 3.1 Postgres schema (`backend/prisma/schema.prisma`)
 
-| Model | Purpose | Key fields |
-| ----- | ------- | ---------- |
-| `User` | Account | `id`, `email` (unique, normalized), `passwordHash` (bcrypt) |
-| `WatchlistItem` | One row per watched symbol per user | `userId`, `symbol`, unique `(userId, symbol)` |
-| `UserSymbolState` | The per-user last-seen snapshot — the basis of every diff | `lastSeenAt`, `lastSeenPrice`, `lastSeenVolume`, `lastSeen52wHigh`, `lastSeen52wLow`, unique `(userId, symbol)` |
-| `SymbolEvent` | Append-only log of discrete events (52-week breaks + admin-triggered news/rating/action) | `symbol`, `eventType`, `eventTime`, `severity`, `payload` (JSON) |
-| `SymbolStats` | Computed per-symbol statistics the scorer reads | `avgVolume20d`, `stdevReturn20d`, `high52w`, `low52w`, `avgOvernightGapPct`, `historyDays`, `computedAt` |
+| Model             | Purpose                                                                                  | Key fields                                                                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `User`            | Account                                                                                  | `id`, `email` (unique, normalized), `passwordHash` (bcrypt)                                                     |
+| `WatchlistItem`   | One row per watched symbol per user                                                      | `userId`, `symbol`, unique `(userId, symbol)`                                                                   |
+| `UserSymbolState` | The per-user last-seen snapshot — the basis of every diff                                | `lastSeenAt`, `lastSeenPrice`, `lastSeenVolume`, `lastSeen52wHigh`, `lastSeen52wLow`, unique `(userId, symbol)` |
+| `SymbolEvent`     | Append-only log of discrete events (52-week breaks + admin-triggered news/rating/action) | `symbol`, `eventType`, `eventTime`, `severity`, `payload` (JSON)                                                |
+| `SymbolStats`     | Computed per-symbol statistics the scorer reads                                          | `avgVolume20d`, `stdevReturn20d`, `high52w`, `low52w`, `avgOvernightGapPct`, `historyDays`, `computedAt`        |
 
 Enums: `EventType` (7 values), `Severity` (`MINOR`, `NOTABLE`, `CRITICAL`).
 
 ### 3.2 Redis keyspace
 
-| Key / channel | Type | Written by | Contents |
-| ------------- | ---- | ---------- | -------- |
-| `market:refcount:<symbol>` | string (int) | subscription manager | Number of watchlists referencing the symbol; `> 0` means "poll this" |
-| `market:state:<symbol>` | hash | `market-state-writer.ts` | `price`, `primarySource`, `primaryPrice`, `secondaryPrice`, `isDivergent`, `divergencePct`, `volume`, `dayOpen`, `prevClose`, `sessionOpenedAt`, `sessionElapsedFraction`, `updatedAt`, `marketStatus`, `isStale`, `mode`, `source` |
-| `market:history:<symbol>` | sorted set | historical backfill | Up to 90 daily bars as JSON, score = bar date in epoch ms |
-| `llm:budget:minute:<epoch-minute>` | string (int), TTL 120s | LLM budget guard | Gemini requests this minute |
-| `llm:budget:day:<UTC-date>` | string (int), TTL 48h | LLM budget guard | Gemini requests today |
-| `market:ticks` | pub/sub channel | `market-state-writer.ts` | Price/volume tick payloads |
-| `market:events` | pub/sub channel | `market-state-writer.ts` | Discrete-event payloads |
+| Key / channel                      | Type                   | Written by               | Contents                                                                                                                                                                                                                            |
+| ---------------------------------- | ---------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `market:refcount:<symbol>`         | string (int)           | subscription manager     | Number of watchlists referencing the symbol; `> 0` means "poll this"                                                                                                                                                                |
+| `market:state:<symbol>`            | hash                   | `market-state-writer.ts` | `price`, `primarySource`, `primaryPrice`, `secondaryPrice`, `isDivergent`, `divergencePct`, `volume`, `dayOpen`, `prevClose`, `sessionOpenedAt`, `sessionElapsedFraction`, `updatedAt`, `marketStatus`, `isStale`, `mode`, `source` |
+| `market:history:<symbol>`          | sorted set             | historical backfill      | Up to 90 daily bars as JSON, score = bar date in epoch ms                                                                                                                                                                           |
+| `llm:budget:minute:<epoch-minute>` | string (int), TTL 120s | LLM budget guard         | Gemini requests this minute                                                                                                                                                                                                         |
+| `llm:budget:day:<UTC-date>`        | string (int), TTL 48h  | LLM budget guard         | Gemini requests today                                                                                                                                                                                                               |
+| `market:ticks`                     | pub/sub channel        | `market-state-writer.ts` | Price/volume tick payloads                                                                                                                                                                                                          |
+| `market:events`                    | pub/sub channel        | `market-state-writer.ts` | Discrete-event payloads                                                                                                                                                                                                             |
 
 `market:state` is read back through `read-state.ts`, which treats a hash without a
 `price` field as "no state" so a symbol touched only by the staleness sweep does not
@@ -113,11 +113,11 @@ interface MarketDataProvider {
 
 Three implementations:
 
-| Provider | Role | Notes |
-| -------- | ---- | ----- |
-| `YahooProvider` | Live **primary** | Unofficial endpoint, no key. Self-throttled: ≤ 6 requests in flight, request starts spaced 150 ms apart, 10 s timeout each. No batch endpoint — one request per symbol per cycle. |
-| `TwelveDataProvider` | Live **cross-check** | Batched, keyed. On the free/basic plan every NSE symbol 404s, so it contributes only when an upgraded key is present. Its absence never blocks a cycle. |
-| `ReplayProvider` | Fallback / `replay` mode | Fully synthetic, no network. Driven by a virtual clock (`SESSION_LENGTH_MS = 4 min` per simulated trading day) and per-tier volatility profiles. Also serves synthetic history for backfill. |
+| Provider             | Role                     | Notes                                                                                                                                                                                        |
+| -------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `YahooProvider`      | Live **primary**         | Unofficial endpoint, no key. Self-throttled: ≤ 6 requests in flight, request starts spaced 150 ms apart, 10 s timeout each. No batch endpoint — one request per symbol per cycle.            |
+| `TwelveDataProvider` | Live **cross-check**     | Batched, keyed. On the free/basic plan every NSE symbol 404s, so it contributes only when an upgraded key is present. Its absence never blocks a cycle.                                      |
+| `ReplayProvider`     | Fallback / `replay` mode | Fully synthetic, no network. Driven by a virtual clock (`SESSION_LENGTH_MS = 4 min` per simulated trading day) and per-tier volatility profiles. Also serves synthetic history for backfill. |
 
 ### 4.3 Composite provider poll cycle (`backend/src/market-data/composite-provider.ts`)
 
@@ -129,11 +129,11 @@ logged every cycle and escalated to a warning as it approaches `STALE_THRESHOLD_
 
 `pollOnce()` decision table, for the current set of active symbols:
 
-| Condition | Behaviour |
-| --------- | --------- |
-| `MARKET_DATA_MODE` effective = `replay` | Replay quotes for all symbols → `writeMarketState(q, null)` |
-| Live mode, `getMarketStatus() === "CLOSED"` | Replay quotes for all symbols, labeled `mode/source = REPLAY` (dashboard keeps moving instead of aging into "stale") |
-| Live mode, market open | Yahoo + Twelve Data fetched **in parallel**; Yahoo is authoritative; symbols Yahoo did not answer for → replay fallback; Twelve Data quote (if any) passed as the divergence cross-check |
+| Condition                                   | Behaviour                                                                                                                                                                                |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MARKET_DATA_MODE` effective = `replay`     | Replay quotes for all symbols → `writeMarketState(q, null)`                                                                                                                              |
+| Live mode, `getMarketStatus() === "CLOSED"` | Replay quotes for all symbols, labeled `mode/source = REPLAY` (dashboard keeps moving instead of aging into "stale")                                                                     |
+| Live mode, market open                      | Yahoo + Twelve Data fetched **in parallel**; Yahoo is authoritative; symbols Yahoo did not answer for → replay fallback; Twelve Data quote (if any) passed as the divergence cross-check |
 
 Every path funnels through the single writer.
 
@@ -155,11 +155,11 @@ independent of which provider produced the quote. Per call it:
 
 ### 4.5 Historical backfill (`backend/src/market-data/historical-backfill.ts`)
 
-| Entry point | Trigger | Scope |
-| ----------- | ------- | ----- |
-| `backfillMissingHistory()` | Boot | Watched symbols with no cached history |
-| `ensureHistory(symbol)` | Called by `watchlist.service.addItem` | The one symbol just added; no-op (one `ZCARD`) once history exists |
-| `backfillUniverse()` | `npm run seed` | The entire symbol universe |
+| Entry point                | Trigger                               | Scope                                                              |
+| -------------------------- | ------------------------------------- | ------------------------------------------------------------------ |
+| `backfillMissingHistory()` | Boot                                  | Watched symbols with no cached history                             |
+| `ensureHistory(symbol)`    | Called by `watchlist.service.addItem` | The one symbol just added; no-op (one `ZCARD`) once history exists |
+| `backfillUniverse()`       | `npm run seed`                        | The entire symbol universe                                         |
 
 Backfill requests 90 daily bars, falls back to synthetic bars if the real fetch returns
 nothing, stores them in `market:history:<symbol>`, computes `SymbolStats`, and seeds an
@@ -170,23 +170,23 @@ renderable before its first poll.
 
 ### 5.1 Read vs. acknowledge
 
-| Endpoint | Writes? | Effect |
-| -------- | ------- | ------ |
-| `GET /api/watchlist` | No | Recomputes the diff fresh from `market:state` + `SymbolStats` + `UserSymbolState` + recent `SymbolEvent`s |
-| `POST /api/watchlist/ack` | Yes (only this) | Advances `UserSymbolState` to the current price/volume/52-week band, server-clock timestamp only |
+| Endpoint                  | Writes?         | Effect                                                                                                    |
+| ------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| `GET /api/watchlist`      | No              | Recomputes the diff fresh from `market:state` + `SymbolStats` + `UserSymbolState` + recent `SymbolEvent`s |
+| `POST /api/watchlist/ack` | Yes (only this) | Advances `UserSymbolState` to the current price/volume/52-week band, server-clock timestamp only          |
 
 Because the read never writes, refreshing the page cannot lose an unseen change.
 Concurrent devices converge on `max(lastSeenAt)` with no conflict resolution.
 
 ### 5.2 Event catalogue
 
-| Event type | Produced where | Rule |
-| ---------- | -------------- | ---- |
-| `PRICE_MOVE` | Diff engine (pure) | z-score of return since `lastSeenPrice` vs `stdevReturn20d`, scaled by √(trading sessions elapsed), clamped to `[1, 20]` sessions |
-| `VOLUME_SPIKE` | Diff engine (pure) | Current session volume vs `avgVolume20d × sessionElapsedFraction`; also requires `volume > lastSeenVolume` |
-| `GAP_OPEN` | Diff engine (pure) | Only if a session boundary occurred after `lastSeenAt`; `|open − prevClose| / prevClose` vs `avgOvernightGapPct` |
-| `FIFTY_TWO_WEEK_EXTREME` | `market-state-writer.ts` → `SymbolEvent` | Price breaks stored `high52w` / `low52w`; 15-min per-direction cooldown |
-| `NEWS`, `RATING_CHANGE`, `CORPORATE_ACTION` | Admin panel → `SymbolEvent` | Demo-triggered; no news feed is wired up |
+| Event type                                  | Produced where                           | Rule                                                                                                                              |
+| ------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `PRICE_MOVE`                                | Diff engine (pure)                       | z-score of return since `lastSeenPrice` vs `stdevReturn20d`, scaled by √(trading sessions elapsed), clamped to `[1, 20]` sessions |
+| `VOLUME_SPIKE`                              | Diff engine (pure)                       | Current session volume vs `avgVolume20d × sessionElapsedFraction`; also requires `volume > lastSeenVolume`                        |
+| `GAP_OPEN`                                  | Diff engine (pure)                       | Only if a session boundary occurred after `lastSeenAt`; `                                                                         | open − prevClose | / prevClose`vs`avgOvernightGapPct` |
+| `FIFTY_TWO_WEEK_EXTREME`                    | `market-state-writer.ts` → `SymbolEvent` | Price breaks stored `high52w` / `low52w`; 15-min per-direction cooldown                                                           |
+| `NEWS`, `RATING_CHANGE`, `CORPORATE_ACTION` | Admin panel → `SymbolEvent`              | Demo-triggered; no news feed is wired up                                                                                          |
 
 Discrete events are filtered to `eventTime > lastSeenAt` before they reach the engine.
 
@@ -195,11 +195,11 @@ Discrete events are filtered to `eventTime > lastSeenAt` before they reach the e
 Thresholds are exported as data (not inlined) so the explanation layer renders the exact
 comparison that ran:
 
-| Metric | `CRITICAL` | `NOTABLE` | `MINOR` |
-| ------ | ---------- | --------- | ------- |
-| `|z|` (price move) | ≥ 3 | ≥ 1.5 | ≥ 0.75 |
-| volume ratio | ≥ 3 | ≥ 2 | ≥ 1.5 |
-| gap ratio | ≥ 3 | ≥ 2 | ≥ 1.25 |
+| Metric       | `CRITICAL` | `NOTABLE`      | `MINOR` |
+| ------------ | ---------- | -------------- | ------- |
+| `            | z          | ` (price move) | ≥ 3     | ≥ 1.5 | ≥ 0.75 |
+| volume ratio | ≥ 3        | ≥ 2            | ≥ 1.5   |
+| gap ratio    | ≥ 3        | ≥ 2            | ≥ 1.25  |
 
 Guards: `stdevReturn20d` is floored at `0.001`; the √t horizon scale is clamped to
 `[1, 20]` sessions; weekends contribute zero elapsed sessions (no holiday calendar).
@@ -247,10 +247,10 @@ None of it is model-generated.
 
 ## 7. Background jobs (`backend/src/jobs/scheduler.ts`)
 
-| Job | Interval | Scope | Action |
-| --- | -------- | ----- | ------ |
-| Staleness sweep (`market-data/staleness.ts`) | 10 s | Active symbols | Sets `market:state.isStale` when `now − updatedAt > STALE_THRESHOLD_MS` |
-| Stats recompute (`stats/stats-job.ts`) | 60 s | Active symbols | Recomputes `avgVolume20d`, `stdevReturn20d`, `avgOvernightGapPct` from `market:history`. `high52w` / `low52w` are **not** overwritten here — they are the running extremes the writer maintains live. |
+| Job                                          | Interval | Scope          | Action                                                                                                                                                                                                |
+| -------------------------------------------- | -------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Staleness sweep (`market-data/staleness.ts`) | 10 s     | Active symbols | Sets `market:state.isStale` when `now − updatedAt > STALE_THRESHOLD_MS`                                                                                                                               |
+| Stats recompute (`stats/stats-job.ts`)       | 60 s     | Active symbols | Recomputes `avgVolume20d`, `stdevReturn20d`, `avgOvernightGapPct` from `market:history`. `high52w` / `low52w` are **not** overwritten here — they are the running extremes the writer maintains live. |
 
 `getMarketStatus()` derives `OPEN` / `CLOSED` from NSE hours (09:15–15:30 IST, Mon–Fri),
 with no holiday calendar.
@@ -262,89 +262,89 @@ All `/api` routes except `/api/auth/register` and `/api/auth/login` require
 paths return `404 {"error":"NOT_FOUND"}` as JSON; a malformed JSON body returns
 `400 {"error":"INVALID_JSON"}`.
 
-| Method & path | Auth | Purpose |
-| ------------- | ---- | ------- |
-| `GET /health` | none | `{ status, marketDataMode }` |
-| `POST /api/auth/register` | none | Create account, returns `{ user, token }` |
-| `POST /api/auth/login` | none | Returns `{ user, token }` |
-| `GET /api/auth/me` | bearer | Current user; `401` for a valid-signature token of a deleted user |
-| `GET /api/watchlist` | bearer | The diff response: `{ generatedAt, marketStatus, entries[] }` |
-| `GET /api/watchlist/items` | bearer | Raw watchlist rows `{ symbol, addedAt }` |
-| `POST /api/watchlist/items` | bearer | `{ symbol }` — add; `404 UNKNOWN_SYMBOL`, `409 ALREADY_WATCHED` |
-| `DELETE /api/watchlist/items/:symbol` | bearer | Remove; also drops the last-seen snapshot |
-| `POST /api/watchlist/ack` | bearer | `{ symbols: [...] }` or `{ ackAll: true }` — advance the snapshot |
-| `GET /api/symbols/search?q=` | bearer | Universe search `{ symbol, name, sector, volatilityTier }` |
-| `POST /api/assistant/command` | bearer | `{ text, confirm? }` — see [assistant.md](assistant.md) |
-| `POST /api/assistant/explain` | bearer | `{ symbol, eventType, occurredAt? }` — trace + optional narration |
-| `GET /api/assistant/status` | bearer | LLM availability, model, budget, example commands |
-| `POST /api/admin/trigger` | admin key | `{ symbol, eventType, severity?, payload? }` — queue a demo event |
-| `GET /api/admin/symbols` | admin key | Every universe symbol with its `market:state` and refcount |
-| `POST /api/admin/recompute-stats` | admin key | Runs the stats job now, returns the recomputed symbols |
+| Method & path                         | Auth      | Purpose                                                           |
+| ------------------------------------- | --------- | ----------------------------------------------------------------- |
+| `GET /health`                         | none      | `{ status, marketDataMode }`                                      |
+| `POST /api/auth/register`             | none      | Create account, returns `{ user, token }`                         |
+| `POST /api/auth/login`                | none      | Returns `{ user, token }`                                         |
+| `GET /api/auth/me`                    | bearer    | Current user; `401` for a valid-signature token of a deleted user |
+| `GET /api/watchlist`                  | bearer    | The diff response: `{ generatedAt, marketStatus, entries[] }`     |
+| `GET /api/watchlist/items`            | bearer    | Raw watchlist rows `{ symbol, addedAt }`                          |
+| `POST /api/watchlist/items`           | bearer    | `{ symbol }` — add; `404 UNKNOWN_SYMBOL`, `409 ALREADY_WATCHED`   |
+| `DELETE /api/watchlist/items/:symbol` | bearer    | Remove; also drops the last-seen snapshot                         |
+| `POST /api/watchlist/ack`             | bearer    | `{ symbols: [...] }` or `{ ackAll: true }` — advance the snapshot |
+| `GET /api/symbols/search?q=`          | bearer    | Universe search `{ symbol, name, sector, volatilityTier }`        |
+| `POST /api/assistant/command`         | bearer    | `{ text, confirm? }` — see [assistant.md](assistant.md)           |
+| `POST /api/assistant/explain`         | bearer    | `{ symbol, eventType, occurredAt? }` — trace + optional narration |
+| `GET /api/assistant/status`           | bearer    | LLM availability, model, budget, example commands                 |
+| `POST /api/admin/trigger`             | admin key | `{ symbol, eventType, severity?, payload? }` — queue a demo event |
+| `GET /api/admin/symbols`              | admin key | Every universe symbol with its `market:state` and refcount        |
+| `POST /api/admin/recompute-stats`     | admin key | Runs the stats job now, returns the recomputed symbols            |
 
 ## 9. WebSocket protocol (`backend/src/ws/ws.protocol.ts`)
 
 Connect to `/ws?token=<jwt>`.
 
-| Client → server | Server → client |
-| --------------- | --------------- |
-| `{ type: "SUBSCRIBE", symbols }` | `{ type: "SUBSCRIBED", symbols }` |
+| Client → server                    | Server → client                                                                                     |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `{ type: "SUBSCRIBE", symbols }`   | `{ type: "SUBSCRIBED", symbols }`                                                                   |
 | `{ type: "UNSUBSCRIBE", symbols }` | `{ type: "TICK", symbol, price, changePct, volume, source, mode, isStale, isDivergent, updatedAt }` |
-| `{ type: "PONG" }` | `{ type: "EVENT", symbol, eventType, severity, eventTime, payload }` |
-| | `{ type: "PING" }` |
-| | `{ type: "ERROR", message }` |
+| `{ type: "PONG" }`                 | `{ type: "EVENT", symbol, eventType, severity, eventTime, payload }`                                |
+|                                    | `{ type: "PING" }`                                                                                  |
+|                                    | `{ type: "ERROR", message }`                                                                        |
 
 ## 10. Backend source layout
 
-| Path | Responsibility |
-| ---- | -------------- |
-| `src/config/env.ts` | Zod-validated environment; `effectiveMarketDataMode`, `llmEnabled` |
-| `src/db/` | Prisma client, Redis client + subscriber factory |
-| `src/http/async-handler.ts` | Promise-rejection → Express error path wrapper |
-| `src/market-data/provider.interface.ts` | `MarketDataProvider`, `Quote`, `DailyBar` |
-| `src/market-data/providers/` | `yahoo`, `twelve-data`, `replay` providers; `virtual-clock` |
-| `src/market-data/composite-provider.ts` | Poll loop and source orchestration |
-| `src/market-data/divergence.ts`, `staleness.ts` | Cross-source check, market-hours + staleness sweep |
-| `src/market-data/historical-backfill.ts` | Boot / on-add / whole-universe history population |
-| `src/market-data/symbol-universe.ts`, `volatility-profiles.ts` | The static universe and per-tier synthetic parameters |
-| `src/market-data/command-queue.ts` | In-memory queue for admin overrides, freeze set |
-| `src/ingestion/subscription-manager.ts` | Refcount subscribe/unsubscribe/scan/reconcile |
-| `src/ingestion/market-state-writer.ts` | The single `market:state` writer + event detection |
-| `src/modules/auth/` | `auth.service` (bcrypt, JWT), `auth.middleware` (`requireAuth`), routes |
-| `src/modules/watchlist/` | `watchlist.service` (add/remove/diff/ack), routes, DTO types |
-| `src/modules/diff/` | `diff.engine`, `scoring`, `explain`, shared types — all unit-tested |
-| `src/modules/assistant/` | `command.rules`, `command.service`, `explain.service`, routes |
-| `src/modules/symbols/` | Symbol search route |
-| `src/modules/admin/` | `admin.middleware` (`X-Admin-Key`), trigger / symbols / recompute routes |
-| `src/llm/` | `gemini.client` (fetch-only, discriminated result), `llm.budget` (Redis counters) |
-| `src/stats/` | `stats.service` (compute + store), `stats-job` (periodic run) |
-| `src/jobs/scheduler.ts` | Registers the interval jobs |
-| `src/pubsub/redis-pubsub.ts` | `publish` / `subscribeToChannels`, channel names |
-| `src/ws/` | `ws.server`, `ws.auth`, `ws.protocol` |
-| `src/app.ts` / `src/server.ts` | Express wiring / startup sequence |
+| Path                                                           | Responsibility                                                                    |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `src/config/env.ts`                                            | Zod-validated environment; `effectiveMarketDataMode`, `llmEnabled`                |
+| `src/db/`                                                      | Prisma client, Redis client + subscriber factory                                  |
+| `src/http/async-handler.ts`                                    | Promise-rejection → Express error path wrapper                                    |
+| `src/market-data/provider.interface.ts`                        | `MarketDataProvider`, `Quote`, `DailyBar`                                         |
+| `src/market-data/providers/`                                   | `yahoo`, `twelve-data`, `replay` providers; `virtual-clock`                       |
+| `src/market-data/composite-provider.ts`                        | Poll loop and source orchestration                                                |
+| `src/market-data/divergence.ts`, `staleness.ts`                | Cross-source check, market-hours + staleness sweep                                |
+| `src/market-data/historical-backfill.ts`                       | Boot / on-add / whole-universe history population                                 |
+| `src/market-data/symbol-universe.ts`, `volatility-profiles.ts` | The static universe and per-tier synthetic parameters                             |
+| `src/market-data/command-queue.ts`                             | In-memory queue for admin overrides, freeze set                                   |
+| `src/ingestion/subscription-manager.ts`                        | Refcount subscribe/unsubscribe/scan/reconcile                                     |
+| `src/ingestion/market-state-writer.ts`                         | The single `market:state` writer + event detection                                |
+| `src/modules/auth/`                                            | `auth.service` (bcrypt, JWT), `auth.middleware` (`requireAuth`), routes           |
+| `src/modules/watchlist/`                                       | `watchlist.service` (add/remove/diff/ack), routes, DTO types                      |
+| `src/modules/diff/`                                            | `diff.engine`, `scoring`, `explain`, shared types — all unit-tested               |
+| `src/modules/assistant/`                                       | `command.rules`, `command.service`, `explain.service`, routes                     |
+| `src/modules/symbols/`                                         | Symbol search route                                                               |
+| `src/modules/admin/`                                           | `admin.middleware` (`X-Admin-Key`), trigger / symbols / recompute routes          |
+| `src/llm/`                                                     | `gemini.client` (fetch-only, discriminated result), `llm.budget` (Redis counters) |
+| `src/stats/`                                                   | `stats.service` (compute + store), `stats-job` (periodic run)                     |
+| `src/jobs/scheduler.ts`                                        | Registers the interval jobs                                                       |
+| `src/pubsub/redis-pubsub.ts`                                   | `publish` / `subscribeToChannels`, channel names                                  |
+| `src/ws/`                                                      | `ws.server`, `ws.auth`, `ws.protocol`                                             |
+| `src/app.ts` / `src/server.ts`                                 | Express wiring / startup sequence                                                 |
 
 ## 11. Frontend source layout
 
-| Path | Responsibility |
-| ---- | -------------- |
-| `src/main.tsx` | React root: `QueryClientProvider`, `BrowserRouter`, `AuthProvider` |
-| `src/App.tsx` | Routes: `/login`, `/register`, `/` (auth-gated dashboard), `/admin` |
-| `src/context/AuthContext.tsx` | Session state, `login` / `register` / `logout`, session-expiry handling |
-| `src/api/client.ts` | axios instance: bearer-token request interceptor, 401 → session-expired handler |
-| `src/api/{auth,watchlist,symbols,assistant}.api.ts` | Typed endpoint wrappers |
-| `src/api/errors.ts` | Server error-code → message mapping, `isAuthExpiry` |
-| `src/hooks/useWatchlist.ts` | Diff query (15 s refetch), items query, add/remove mutations |
-| `src/hooks/useAck.ts` | `ackSymbol` / `ackAll` mutations (invalidate the diff query) |
-| `src/ws/useMarketSocket.ts` | WebSocket connect + exponential-backoff reconnect, tick/event state |
-| `src/pages/` | `LoginPage`, `RegisterPage`, `DashboardPage`, `AdminDemoPage` |
-| `src/components/WatchlistTable.tsx` | Renders rows, merges live ticks over the diff snapshot |
-| `src/components/EventBadge.tsx`, `SeverityIcon.tsx` | Per-event badge and severity glyph |
-| `src/components/ExplainDrawer.tsx` | Renders an `EventExplanation` trace + optional narration |
-| `src/components/CommandBar.tsx` | Natural-language command input, shows how each command was interpreted |
-| `src/components/AddSymbolModal.tsx`, `SymbolSearch.tsx` | Add-symbol flow |
-| `src/components/{MarketStatus,DataMode,Divergence,Staleness}Indicator.tsx`, `MarketStatusPill.tsx` | State pills |
-| `src/components/UnavailableNotice.tsx` | Renders the server's `unavailable` message for a `DELISTED` / `NO_DATA` row |
-| `src/lib/eventKey.ts` | Content-derived stable identity for one event (drawer survives re-ranking) |
-| `src/types/index.ts` | Response types mirroring the backend DTOs |
+| Path                                                                                               | Responsibility                                                                  |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `src/main.tsx`                                                                                     | React root: `QueryClientProvider`, `BrowserRouter`, `AuthProvider`              |
+| `src/App.tsx`                                                                                      | Routes: `/login`, `/register`, `/` (auth-gated dashboard), `/admin`             |
+| `src/context/AuthContext.tsx`                                                                      | Session state, `login` / `register` / `logout`, session-expiry handling         |
+| `src/api/client.ts`                                                                                | axios instance: bearer-token request interceptor, 401 → session-expired handler |
+| `src/api/{auth,watchlist,symbols,assistant}.api.ts`                                                | Typed endpoint wrappers                                                         |
+| `src/api/errors.ts`                                                                                | Server error-code → message mapping, `isAuthExpiry`                             |
+| `src/hooks/useWatchlist.ts`                                                                        | Diff query (15 s refetch), items query, add/remove mutations                    |
+| `src/hooks/useAck.ts`                                                                              | `ackSymbol` / `ackAll` mutations (invalidate the diff query)                    |
+| `src/ws/useMarketSocket.ts`                                                                        | WebSocket connect + exponential-backoff reconnect, tick/event state             |
+| `src/pages/`                                                                                       | `LoginPage`, `RegisterPage`, `DashboardPage`, `AdminDemoPage`                   |
+| `src/components/WatchlistTable.tsx`                                                                | Renders rows, merges live ticks over the diff snapshot                          |
+| `src/components/EventBadge.tsx`, `SeverityIcon.tsx`                                                | Per-event badge and severity glyph                                              |
+| `src/components/ExplainDrawer.tsx`                                                                 | Renders an `EventExplanation` trace + optional narration                        |
+| `src/components/CommandBar.tsx`                                                                    | Natural-language command input, shows how each command was interpreted          |
+| `src/components/AddSymbolModal.tsx`, `SymbolSearch.tsx`                                            | Add-symbol flow                                                                 |
+| `src/components/{MarketStatus,DataMode,Divergence,Staleness}Indicator.tsx`, `MarketStatusPill.tsx` | State pills                                                                     |
+| `src/components/UnavailableNotice.tsx`                                                             | Renders the server's `unavailable` message for a `DELISTED` / `NO_DATA` row     |
+| `src/lib/eventKey.ts`                                                                              | Content-derived stable identity for one event (drawer survives re-ranking)      |
+| `src/types/index.ts`                                                                               | Response types mirroring the backend DTOs                                       |
 
 ## Design rationale
 

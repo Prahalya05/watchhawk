@@ -65,11 +65,7 @@ export default function AdminDemoPage() {
   async function trigger() {
     if (!symbol) return;
     try {
-      await axios.post(
-        `${API_URL}/admin/trigger`,
-        { symbol, eventType },
-        { headers: { "X-Admin-Key": adminKey } }
-      );
+      await axios.post(`${API_URL}/admin/trigger`, { symbol, eventType }, { headers: { "X-Admin-Key": adminKey } });
       setMessage(`Triggered ${eventType} on ${symbol}`);
       setTimeout(refresh, 1000);
     } catch {

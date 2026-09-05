@@ -28,9 +28,7 @@ function check(label: string, ok: boolean, detail = "") {
 }
 
 function inspectQuote(q: Quote) {
-  console.log(
-    `\n  ${q.symbol}: price=${q.price} open=${q.dayOpen} prevClose=${q.prevClose} volume=${q.volume}`
-  );
+  console.log(`\n  ${q.symbol}: price=${q.price} open=${q.dayOpen} prevClose=${q.prevClose} volume=${q.volume}`);
   check(`${q.symbol} price is a positive number`, Number.isFinite(q.price) && q.price > 0);
   check(`${q.symbol} prevClose is a positive number`, Number.isFinite(q.prevClose) && q.prevClose > 0);
   check(`${q.symbol} dayOpen is a positive number`, Number.isFinite(q.dayOpen) && q.dayOpen > 0);
@@ -44,7 +42,9 @@ function inspectQuote(q: Quote) {
   check(
     `${q.symbol} dayOpen is a real session open, not a stand-in for the live price`,
     !openEqualsPrice || q.price === q.prevClose,
-    openEqualsPrice ? "dayOpen === price; gaps computed from this would be wrong" : `implied gap ${impliedGapPct.toFixed(2)}%`
+    openEqualsPrice
+      ? "dayOpen === price; gaps computed from this would be wrong"
+      : `implied gap ${impliedGapPct.toFixed(2)}%`,
   );
 }
 
@@ -54,7 +54,11 @@ async function verifyYahoo() {
   await provider.start();
 
   const quotes = await provider.fetchQuotes(SAMPLE_SYMBOLS);
-  check(`returned a quote for each of ${SAMPLE_SYMBOLS.length} symbols`, quotes.length === SAMPLE_SYMBOLS.length, `got ${quotes.length}`);
+  check(
+    `returned a quote for each of ${SAMPLE_SYMBOLS.length} symbols`,
+    quotes.length === SAMPLE_SYMBOLS.length,
+    `got ${quotes.length}`,
+  );
   quotes.forEach(inspectQuote);
 
   const history = await provider.fetchDailyHistory("RELIANCE", 30);
@@ -62,7 +66,11 @@ async function verifyYahoo() {
   check("returned daily history for RELIANCE", history.length > 0, `${history.length} bars`);
   if (history.length > 0) {
     const last = history[history.length - 1];
-    check("history bars carry OHLC + volume", [last.open, last.high, last.low, last.close].every((v) => Number.isFinite(v) && v > 0), `latest ${last.date}: close=${last.close}`);
+    check(
+      "history bars carry OHLC + volume",
+      [last.open, last.high, last.low, last.close].every((v) => Number.isFinite(v) && v > 0),
+      `latest ${last.date}: close=${last.close}`,
+    );
     check("history is ordered oldest-first", new Date(history[0].date) <= new Date(last.date));
   }
 
@@ -90,7 +98,7 @@ async function verifyTwelveData() {
     quotes.length === SAMPLE_SYMBOLS.length,
     quotes.length === 0
       ? "got 0 — check the symbol format in toTwelveDataSymbol(), and that the plan covers NSE"
-      : `got ${quotes.length}`
+      : `got ${quotes.length}`,
   );
   quotes.forEach(inspectQuote);
 
@@ -106,7 +114,9 @@ async function verifyTwelveData() {
 
 async function main() {
   console.log("Verifying live market-data providers against the real APIs.");
-  console.log(`Configured mode: MARKET_DATA_MODE=${env.MARKET_DATA_MODE}, key ${env.TWELVE_DATA_API_KEY ? "present" : "absent"}`);
+  console.log(
+    `Configured mode: MARKET_DATA_MODE=${env.MARKET_DATA_MODE}, key ${env.TWELVE_DATA_API_KEY ? "present" : "absent"}`,
+  );
 
   try {
     await verifyYahoo();

@@ -1,7 +1,5 @@
 export type ClientMessage =
-  | { type: "SUBSCRIBE"; symbols: string[] }
-  | { type: "UNSUBSCRIBE"; symbols: string[] }
-  | { type: "PONG" };
+  { type: "SUBSCRIBE"; symbols: string[] } | { type: "UNSUBSCRIBE"; symbols: string[] } | { type: "PONG" };
 
 export type ServerMessage =
   | { type: "SUBSCRIBED"; symbols: string[] }
@@ -17,6 +15,13 @@ export type ServerMessage =
       isDivergent: boolean;
       updatedAt: string;
     }
-  | { type: "EVENT"; symbol: string; eventType: string; severity: string; eventTime: string; payload: Record<string, unknown> }
+  | {
+      type: "EVENT";
+      symbol: string;
+      eventType: string;
+      severity: string;
+      eventTime: string;
+      payload: Record<string, unknown>;
+    }
   | { type: "PING" }
   | { type: "ERROR"; message: string };

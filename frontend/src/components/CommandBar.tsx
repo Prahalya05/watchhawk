@@ -91,11 +91,14 @@ export default function CommandBar() {
           </button>
         ))}
 
-        <span className="ml-auto" title={
-          status.data?.budget
-            ? `Gemini handles phrasings the built-in patterns can't read. ${status.data.budget.dayUsed}/${status.data.budget.dayLimit} requests used today.`
-            : "No Gemini key configured — commands are read by the built-in pattern parser, which covers the common phrasings."
-        }>
+        <span
+          className="ml-auto"
+          title={
+            status.data?.budget
+              ? `Gemini handles phrasings the built-in patterns can't read. ${status.data.budget.dayUsed}/${status.data.budget.dayLimit} requests used today.`
+              : "No Gemini key configured — commands are read by the built-in pattern parser, which covers the common phrasings."
+          }
+        >
           {status.data
             ? status.data.available
               ? `AI fallback on · ${status.data.model}`

@@ -25,7 +25,7 @@ export function computeSymbolDiff(
   state: MarketStateSnapshot,
   stats: SymbolStatsSnapshot,
   baseline: UserSymbolBaseline,
-  discreteEvents: DiscreteEventInput[]
+  discreteEvents: DiscreteEventInput[],
 ): Omit<DiffEntry, "symbol"> {
   const events: DiffEvent[] = [];
   const baselineAtMs = baseline.lastSeenAt.getTime();
@@ -125,7 +125,7 @@ export function computeSymbolDiff(
   events.sort(
     (a, b) =>
       SEVERITY_RANK(b.severity) - SEVERITY_RANK(a.severity) ||
-      new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+      new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
   );
   const capped = events.slice(0, MAX_EVENTS_PER_SYMBOL);
   const overallMax = capped.reduce<DiffEvent["severity"]>((m, e) => maxSeverity(m, e.severity), "NONE");
@@ -167,6 +167,6 @@ function collapseRedundantEvents(events: DiscreteEventInput[]): DiscreteEventInp
 
 export function rankEntries<T extends { maxSeverity: DiffEvent["severity"]; eventCount: number }>(entries: T[]): T[] {
   return [...entries].sort(
-    (a, b) => SEVERITY_RANK(b.maxSeverity) - SEVERITY_RANK(a.maxSeverity) || b.eventCount - a.eventCount
+    (a, b) => SEVERITY_RANK(b.maxSeverity) - SEVERITY_RANK(a.maxSeverity) || b.eventCount - a.eventCount,
   );
 }

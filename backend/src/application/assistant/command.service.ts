@@ -224,7 +224,13 @@ export async function runCommand(userId: string, text: string, confirmed: boolea
   const llm = { enabled: llmEnabled, used: parsed.llmUsed, reason: parsed.llmReason };
 
   if (parsed.rejection) {
-    return { intent: parsed.intent, interpretedBy: parsed.interpretedBy, status: "REJECTED", message: parsed.rejection, llm };
+    return {
+      intent: parsed.intent,
+      interpretedBy: parsed.interpretedBy,
+      status: "REJECTED",
+      message: parsed.rejection,
+      llm,
+    };
   }
 
   if (parsed.intent.action === "UNKNOWN") {
@@ -258,13 +264,31 @@ export async function runCommand(userId: string, text: string, confirmed: boolea
     // Domain errors are answers, not failures: "you already watch that" is the correct
     // response to a valid command, and should read like one rather than a 500.
     if (err instanceof AlreadyWatchedError) {
-      return { intent: parsed.intent, interpretedBy: parsed.interpretedBy, status: "REJECTED", message: `${parsed.intent.symbol} is already on your watchlist.`, llm };
+      return {
+        intent: parsed.intent,
+        interpretedBy: parsed.interpretedBy,
+        status: "REJECTED",
+        message: `${parsed.intent.symbol} is already on your watchlist.`,
+        llm,
+      };
     }
     if (err instanceof NotWatchedError) {
-      return { intent: parsed.intent, interpretedBy: parsed.interpretedBy, status: "REJECTED", message: `${parsed.intent.symbol} isn't on your watchlist.`, llm };
+      return {
+        intent: parsed.intent,
+        interpretedBy: parsed.interpretedBy,
+        status: "REJECTED",
+        message: `${parsed.intent.symbol} isn't on your watchlist.`,
+        llm,
+      };
     }
     if (err instanceof UnknownSymbolError) {
-      return { intent: parsed.intent, interpretedBy: parsed.interpretedBy, status: "REJECTED", message: "I couldn't tell which symbol you meant.", llm };
+      return {
+        intent: parsed.intent,
+        interpretedBy: parsed.interpretedBy,
+        status: "REJECTED",
+        message: "I couldn't tell which symbol you meant.",
+        llm,
+      };
     }
     throw err;
   }

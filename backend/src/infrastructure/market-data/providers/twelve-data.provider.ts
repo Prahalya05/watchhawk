@@ -32,7 +32,9 @@ export class TwelveDataProvider implements MarketDataProvider {
 
     // Single-symbol requests return one object; multi-symbol requests return
     // { "SYMBOL.NS": {...}, ... } keyed by the requested symbol string.
-    const entries: Record<string, Record<string, string>> = symbols.length === 1 ? { [tdSymbols]: body as unknown as Record<string, string> } : body;
+    const entries: Record<string, Record<string, string>> = symbols.length === 1
+      ? { [tdSymbols]: body as unknown as Record<string, string> }
+      : body;
     const now = Date.now();
     const quotes: Quote[] = [];
 

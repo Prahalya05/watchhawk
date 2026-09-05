@@ -1,7 +1,14 @@
 export type Severity = "MINOR" | "NOTABLE" | "CRITICAL" | "NONE";
 
 export interface DiffEvent {
-  type: "PRICE_MOVE" | "VOLUME_SPIKE" | "FIFTY_TWO_WEEK_EXTREME" | "GAP_OPEN" | "NEWS" | "RATING_CHANGE" | "CORPORATE_ACTION";
+  type:
+    | "PRICE_MOVE"
+    | "VOLUME_SPIKE"
+    | "FIFTY_TWO_WEEK_EXTREME"
+    | "GAP_OPEN"
+    | "NEWS"
+    | "RATING_CHANGE"
+    | "CORPORATE_ACTION";
   severity: Severity;
   occurredAt: string;
   detail: Record<string, unknown>;

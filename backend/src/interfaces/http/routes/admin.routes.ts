@@ -34,42 +34,51 @@ const triggerSchema = z.object({
 // (works fully in replay mode; VOLUME_SPIKE/GAP_OPEN/FIFTY_TWO_WEEK_EXTREME/DIVERGE
 // are queued overrides applied by market-state-writer.ts on the next poll cycle
 // regardless of which provider is currently authoritative).
-adminRouter.post("/trigger", asyncHandler(async (req, res) => {
-  const parsed = triggerSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "INVALID_BODY", details: parsed.error.flatten() });
+adminRouter.post(
+  "/trigger",
+  asyncHandler(async (req, res) => {
+    const parsed = triggerSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "INVALID_BODY", details: parsed.error.flatten() });
 
-  const { symbol, eventType, severity, payload } = parsed.data;
-  const upperSymbol = symbol.toUpperCase();
+    const { symbol, eventType, severity, payload } = parsed.data;
+    const upperSymbol = symbol.toUpperCase();
 
-  if (eventType === "NEWS" || eventType === "RATING_CHANGE" || eventType === "CORPORATE_ACTION") {
-    await writeDiscreteEvent(upperSymbol, eventType, severity ?? "NOTABLE", payload ?? {});
-  } else {
-    enqueueCommand({ symbol: upperSymbol, type: eventType as AdminCommandType, severity, payload });
-  }
+    if (eventType === "NEWS" || eventType === "RATING_CHANGE" || eventType === "CORPORATE_ACTION") {
+      await writeDiscreteEvent(upperSymbol, eventType, severity ?? "NOTABLE", payload ?? {});
+    } else {
+      enqueueCommand({ symbol: upperSymbol, type: eventType as AdminCommandType, severity, payload });
+    }
 
-  res.json({ accepted: true });
-}));
+    res.json({ accepted: true });
+  }),
+);
 
-adminRouter.get("/symbols", asyncHandler(async (_req, res) => {
-  const symbols = SYMBOL_UNIVERSE.map((s) => s.symbol);
-  const states = await readMarketStates(symbols);
-  const refcounts = await Promise.all(symbols.map((s) => getRefcount(s)));
+adminRouter.get(
+  "/symbols",
+  asyncHandler(async (_req, res) => {
+    const symbols = SYMBOL_UNIVERSE.map((s) => s.symbol);
+    const states = await readMarketStates(symbols);
+    const refcounts = await Promise.all(symbols.map((s) => getRefcount(s)));
 
-  res.json(
-    SYMBOL_UNIVERSE.map((def, i) => ({
-      symbol: def.symbol,
-      name: def.name,
-      tier: def.volatilityTier,
-      state: states.get(def.symbol) ?? null,
-      refcount: refcounts[i],
-    }))
-  );
-}));
+    res.json(
+      SYMBOL_UNIVERSE.map((def, i) => ({
+        symbol: def.symbol,
+        name: def.name,
+        tier: def.volatilityTier,
+        state: states.get(def.symbol) ?? null,
+        refcount: refcounts[i],
+      })),
+    );
+  }),
+);
 
-adminRouter.post("/recompute-stats", asyncHandler(async (_req, res) => {
-  // Reports what the job actually recomputed. It used to echo the whole universe, which
-  // was already only coincidentally true and is plainly wrong now that the job is scoped
-  // to watched symbols — a demo panel that overstates what ran is worse than no panel.
-  const recomputed = await runStatsJob();
-  res.json({ recomputed });
-}));
+adminRouter.post(
+  "/recompute-stats",
+  asyncHandler(async (_req, res) => {
+    // Reports what the job actually recomputed. It used to echo the whole universe, which
+    // was already only coincidentally true and is plainly wrong now that the job is scoped
+    // to watched symbols — a demo panel that overstates what ran is worse than no panel.
+    const recomputed = await runStatsJob();
+    res.json({ recomputed });
+  }),
+);

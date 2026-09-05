@@ -1,11 +1,14 @@
-// Must come first: config/env validates the environment the moment it is imported.
-import "../../../setup/env";
+// The environment config/env.ts validates at import time is provided by
+// tests/setup/env.ts, registered as a Vitest setupFile (see vitest.config.ts).
 import { describe, expect, it } from "vitest";
 import { env } from "../../../../src/config/env";
-import { InvalidTokenError, TokenExpiredError, normalizeEmail, verifyToken } from "../../../../src/application/auth/auth.service";
+import {
+  InvalidTokenError,
+  TokenExpiredError,
+  normalizeEmail,
+  verifyToken,
+} from "../../../../src/application/auth/auth.service";
 import jwt from "jsonwebtoken";
-
-
 
 describe("normalizeEmail", () => {
   it("folds case so one address is one account", () => {

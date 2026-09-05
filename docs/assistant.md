@@ -81,16 +81,16 @@ text ──► parseWithRules ──► matched & unambiguous ──────
 
 ### 1.3 Intent set
 
-| Action | Effect | Confirmation |
-| ------ | ------ | ------------ |
-| `ADD_SYMBOL` | `watchlistService.addItem` | no |
-| `REMOVE_SYMBOL` | `watchlistService.removeItem` | **yes** |
-| `ACK_SYMBOL` | Ack one symbol | no |
-| `ACK_ALL` | Ack the whole watchlist | no |
-| `SHOW_WATCHLIST` | Summarise what changed since last look | no |
-| `EXPLAIN_SYMBOL` | Return the event summaries for one symbol | no |
-| `SEARCH_SYMBOLS` | Universe search | no |
-| `UNKNOWN` | Return the parser's reason | n/a |
+| Action           | Effect                                    | Confirmation |
+| ---------------- | ----------------------------------------- | ------------ |
+| `ADD_SYMBOL`     | `watchlistService.addItem`                | no           |
+| `REMOVE_SYMBOL`  | `watchlistService.removeItem`             | **yes**      |
+| `ACK_SYMBOL`     | Ack one symbol                            | no           |
+| `ACK_ALL`        | Ack the whole watchlist                   | no           |
+| `SHOW_WATCHLIST` | Summarise what changed since last look    | no           |
+| `EXPLAIN_SYMBOL` | Return the event summaries for one symbol | no           |
+| `SEARCH_SYMBOLS` | Universe search                           | no           |
+| `UNKNOWN`        | Return the parser's reason                | n/a          |
 
 ## 2. Event explainability
 
@@ -171,13 +171,13 @@ response report which mode is active.
 
 ## 6. Module files
 
-| File | Responsibility |
-| ---- | -------------- |
-| `assistant.routes.ts` | `/command`, `/explain`, `/status` routes; request validation |
-| `assistant.types.ts` | Intent types, `CONFIRMATION_REQUIRED`, Zod schemas, Gemini response schema |
-| `command.rules.ts` | Deterministic verb + symbol resolution, stopwords, generic-name-word exclusions |
-| `command.service.ts` | Full parse → normalize → confirm → execute pipeline; example-command list |
-| `explain.service.ts` | Recompute diff, find event, narrate; deterministic fallback |
-| `../diff/explain.ts` | Builds the computed `EventExplanation` (the source of truth) |
-| `../../llm/gemini.client.ts` | Gemini transport |
-| `../../llm/llm.budget.ts` | Redis-backed request budget |
+| File                         | Responsibility                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `assistant.routes.ts`        | `/command`, `/explain`, `/status` routes; request validation                    |
+| `assistant.types.ts`         | Intent types, `CONFIRMATION_REQUIRED`, Zod schemas, Gemini response schema      |
+| `command.rules.ts`           | Deterministic verb + symbol resolution, stopwords, generic-name-word exclusions |
+| `command.service.ts`         | Full parse → normalize → confirm → execute pipeline; example-command list       |
+| `explain.service.ts`         | Recompute diff, find event, narrate; deterministic fallback                     |
+| `../diff/explain.ts`         | Builds the computed `EventExplanation` (the source of truth)                    |
+| `../../llm/gemini.client.ts` | Gemini transport                                                                |
+| `../../llm/llm.budget.ts`    | Redis-backed request budget                                                     |

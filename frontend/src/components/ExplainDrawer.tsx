@@ -76,7 +76,10 @@ export default function ExplainDrawer({ symbol, event, onClose }: Props) {
               {explanation.rule} · flagged {event.severity.toLowerCase()} at {timestamp(event.occurredAt)}
             </p>
           </div>
-          <button onClick={onClose} className="shrink-0 rounded-md border border-gray-800 px-2 py-1 text-xs text-gray-400 hover:bg-gray-900">
+          <button
+            onClick={onClose}
+            className="shrink-0 rounded-md border border-gray-800 px-2 py-1 text-xs text-gray-400 hover:bg-gray-900"
+          >
             Close
           </button>
         </header>
@@ -88,17 +91,21 @@ export default function ExplainDrawer({ symbol, event, onClose }: Props) {
             {narration ? (
               <div className="rounded-md border border-gray-800 bg-gray-900/50 p-3">
                 <div className="mb-1.5 flex items-center gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">In plain English</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                    In plain English
+                  </span>
                   {/* Labelled on the output itself, not just in a tooltip: a reader has to
                       be able to tell computed text from generated text at a glance. */}
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                      narration.generatedBy === "GEMINI" ? "bg-indigo-900/60 text-indigo-300" : "bg-gray-800 text-gray-400"
+                      narration.generatedBy === "GEMINI"
+                        ? "bg-indigo-900/60 text-indigo-300"
+                        : "bg-gray-800 text-gray-400"
                     }`}
                     title={
                       narration.generatedBy === "GEMINI"
                         ? "Worded by Gemini from the computed trace below. The numbers come from the trace, not from the model."
-                        : narration.reason ?? "Generated from the rule itself, with no model involved."
+                        : (narration.reason ?? "Generated from the rule itself, with no model involved.")
                     }
                   >
                     {narration.generatedBy === "GEMINI" ? "AI-worded" : "Rule-generated"}
@@ -106,7 +113,9 @@ export default function ExplainDrawer({ symbol, event, onClose }: Props) {
                 </div>
                 <p className="text-sm leading-relaxed text-gray-300">{narration.text}</p>
                 {narration.generatedBy === "DETERMINISTIC" && narration.reason && (
-                  <p className="mt-2 text-[11px] text-gray-600">Model unavailable ({narration.reason}) — showing the computed summary.</p>
+                  <p className="mt-2 text-[11px] text-gray-600">
+                    Model unavailable ({narration.reason}) — showing the computed summary.
+                  </p>
                 )}
               </div>
             ) : (
@@ -158,7 +167,9 @@ export default function ExplainDrawer({ symbol, event, onClose }: Props) {
             <ul className="space-y-1.5">
               {explanation.thresholds.map((t, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm">
-                  <span className={`w-4 shrink-0 text-center ${t.met ? "text-green-400" : "text-gray-700"}`}>{t.met ? "✓" : "·"}</span>
+                  <span className={`w-4 shrink-0 text-center ${t.met ? "text-green-400" : "text-gray-700"}`}>
+                    {t.met ? "✓" : "·"}
+                  </span>
                   <span className={t.met ? "text-gray-200" : "text-gray-600"}>{t.severity}</span>
                   <span className="font-mono text-xs text-gray-600">{t.test}</span>
                 </li>
@@ -188,7 +199,9 @@ export default function ExplainDrawer({ symbol, event, onClose }: Props) {
             <dd className="text-gray-200">
               {explanation.provenance.statsComputedAt ? timestamp(explanation.provenance.statsComputedAt) : "unknown"}
               {explanation.provenance.statsHistoryDays !== null && (
-                <span className="ml-1.5 text-xs text-gray-500">from {explanation.provenance.statsHistoryDays} bars</span>
+                <span className="ml-1.5 text-xs text-gray-500">
+                  from {explanation.provenance.statsHistoryDays} bars
+                </span>
               )}
             </dd>
           </dl>
@@ -196,12 +209,15 @@ export default function ExplainDrawer({ symbol, event, onClose }: Props) {
           {(explanation.provenance.isStale || explanation.provenance.isDivergent) && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {explanation.provenance.isStale && (
-                <span className="rounded bg-yellow-900/60 px-1.5 py-0.5 text-[10px] font-medium text-yellow-300">STALE QUOTE</span>
+                <span className="rounded bg-yellow-900/60 px-1.5 py-0.5 text-[10px] font-medium text-yellow-300">
+                  STALE QUOTE
+                </span>
               )}
               {explanation.provenance.isDivergent && (
                 <span className="rounded bg-orange-900/60 px-1.5 py-0.5 text-[10px] font-medium text-orange-300">
                   SOURCES DISAGREE
-                  {explanation.provenance.divergencePct !== null && ` (${Math.abs(explanation.provenance.divergencePct).toFixed(2)}%)`}
+                  {explanation.provenance.divergencePct !== null &&
+                    ` (${Math.abs(explanation.provenance.divergencePct).toFixed(2)}%)`}
                 </span>
               )}
             </div>

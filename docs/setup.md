@@ -14,10 +14,10 @@ default `.env` expects:
 docker compose up -d
 ```
 
-| Service | Port | Credentials |
-| ------- | ---- | ----------- |
+| Service  | Port | Credentials                                     |
+| -------- | ---- | ----------------------------------------------- |
 | Postgres | 5432 | `watchlist` / `watchlist`, database `watchlist` |
-| Redis | 6379 | none |
+| Redis    | 6379 | none                                            |
 
 Postgres data persists in the `watchlist_pg_data` volume; Redis is not persisted, and the
 backend rebuilds all Redis state on boot.
@@ -44,17 +44,17 @@ npm run dev                 # http://localhost:4000
 
 ### npm scripts
 
-| Script | Purpose |
-| ------ | ------- |
-| `npm run dev` | `tsx watch src/server.ts` |
-| `npm run build` / `npm start` | Compile to `dist/` and run |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run prisma:migrate` | `prisma migrate dev` |
-| `npm run prisma:generate` | Regenerate the Prisma client |
-| `npm run prisma:studio` | Prisma Studio |
-| `npm run seed` | Whole-universe history + stats backfill |
+| Script                            | Purpose                                                           |
+| --------------------------------- | ----------------------------------------------------------------- |
+| `npm run dev`                     | `tsx watch src/server.ts`                                         |
+| `npm run build` / `npm start`     | Compile to `dist/` and run                                        |
+| `npm run typecheck`               | `tsc --noEmit`                                                    |
+| `npm run prisma:migrate`          | `prisma migrate dev`                                              |
+| `npm run prisma:generate`         | Regenerate the Prisma client                                      |
+| `npm run prisma:studio`           | Prisma Studio                                                     |
+| `npm run seed`                    | Whole-universe history + stats backfill                           |
 | `npm test` / `npm run test:watch` | Vitest (diff engine, scoring, explanations, command parser, auth) |
-| `npm run verify:live` | Call the real provider classes against the real APIs |
+| `npm run verify:live`             | Call the real provider classes against the real APIs              |
 
 ### Tests
 
@@ -90,10 +90,10 @@ cp .env.example .env
 npm run dev                 # http://localhost:5173
 ```
 
-| Script | Purpose |
-| ------ | ------- |
-| `npm run dev` | Vite dev server |
-| `npm run build` | `tsc -b && vite build` |
+| Script            | Purpose                    |
+| ----------------- | -------------------------- |
+| `npm run dev`     | Vite dev server            |
+| `npm run build`   | `tsc -b && vite build`     |
 | `npm run preview` | Serve the production build |
 
 Register an account, then add a mix of symbols — e.g. `RELIANCE`, `TCS`, `ETERNAL`,
@@ -104,32 +104,32 @@ severity thresholds produce visibly different results per symbol.
 
 ### Backend (`backend/.env`, annotated in `backend/.env.example`)
 
-| Variable | Default | Purpose |
-| -------- | ------- | ------- |
-| `DATABASE_URL` | `postgresql://watchlist:watchlist@localhost:5432/watchlist` | Postgres connection; matches `docker-compose.yml` |
-| `REDIS_URL` | `redis://localhost:6379` | Redis connection |
-| `JWT_SECRET` | — (required) | Auth signing key; rejected at boot below 32 characters |
-| `ADMIN_KEY` | — (required) | `X-Admin-Key` value for the demo panel; minimum 16 characters |
-| `MARKET_DATA_MODE` | `live` | `live` or `replay`. `live` is downgraded to `replay` at boot if `TWELVE_DATA_API_KEY` is empty (see [scope-and-limitations.md](scope-and-limitations.md)) |
-| `TWELVE_DATA_API_KEY` | `""` | Required to enable live mode. NSE coverage still depends on the Twelve Data plan |
-| `MARKET_POLL_INTERVAL_MS` | `45000` | Live-mode poll cadence (fixed-rate, timed from cycle start) |
-| `STALE_THRESHOLD_MS` | `120000` | Age past which a symbol's `market:state` is marked `isStale` |
-| `PORT` | `4000` | HTTP port |
-| `GEMINI_API_KEY` | `""` | Enables LLM command parsing and plain-English narration — see [assistant.md](assistant.md) |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Model id |
-| `GEMINI_TIMEOUT_MS` | `8000` | Per-call abort timeout |
-| `GEMINI_MAX_REQUESTS_PER_MINUTE` | `8` | Self-imposed ceiling; exhaustion degrades to the deterministic path |
-| `GEMINI_MAX_REQUESTS_PER_DAY` | `200` | Self-imposed daily ceiling |
+| Variable                         | Default                                                     | Purpose                                                                                                                                                   |
+| -------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                   | `postgresql://watchlist:watchlist@localhost:5432/watchlist` | Postgres connection; matches `docker-compose.yml`                                                                                                         |
+| `REDIS_URL`                      | `redis://localhost:6379`                                    | Redis connection                                                                                                                                          |
+| `JWT_SECRET`                     | — (required)                                                | Auth signing key; rejected at boot below 32 characters                                                                                                    |
+| `ADMIN_KEY`                      | — (required)                                                | `X-Admin-Key` value for the demo panel; minimum 16 characters                                                                                             |
+| `MARKET_DATA_MODE`               | `live`                                                      | `live` or `replay`. `live` is downgraded to `replay` at boot if `TWELVE_DATA_API_KEY` is empty (see [scope-and-limitations.md](scope-and-limitations.md)) |
+| `TWELVE_DATA_API_KEY`            | `""`                                                        | Required to enable live mode. NSE coverage still depends on the Twelve Data plan                                                                          |
+| `MARKET_POLL_INTERVAL_MS`        | `45000`                                                     | Live-mode poll cadence (fixed-rate, timed from cycle start)                                                                                               |
+| `STALE_THRESHOLD_MS`             | `120000`                                                    | Age past which a symbol's `market:state` is marked `isStale`                                                                                              |
+| `PORT`                           | `4000`                                                      | HTTP port                                                                                                                                                 |
+| `GEMINI_API_KEY`                 | `""`                                                        | Enables LLM command parsing and plain-English narration — see [assistant.md](assistant.md)                                                                |
+| `GEMINI_MODEL`                   | `gemini-2.5-flash`                                          | Model id                                                                                                                                                  |
+| `GEMINI_TIMEOUT_MS`              | `8000`                                                      | Per-call abort timeout                                                                                                                                    |
+| `GEMINI_MAX_REQUESTS_PER_MINUTE` | `8`                                                         | Self-imposed ceiling; exhaustion degrades to the deterministic path                                                                                       |
+| `GEMINI_MAX_REQUESTS_PER_DAY`    | `200`                                                       | Self-imposed daily ceiling                                                                                                                                |
 
 `config/env.ts` validates all of this with Zod and calls `process.exit(1)` on a missing
 or invalid required variable.
 
 ### Frontend (`frontend/.env`)
 
-| Variable | Default | Purpose |
-| -------- | ------- | ------- |
+| Variable       | Default                     | Purpose       |
+| -------------- | --------------------------- | ------------- |
 | `VITE_API_URL` | `http://localhost:4000/api` | REST base URL |
-| `VITE_WS_URL` | `ws://localhost:4000/ws` | WebSocket URL |
+| `VITE_WS_URL`  | `ws://localhost:4000/ws`    | WebSocket URL |
 
 ## 6. Authentication model
 

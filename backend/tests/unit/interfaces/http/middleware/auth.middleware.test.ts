@@ -1,12 +1,10 @@
-// Must come first: config/env validates the environment the moment it is imported.
-import "../../../../setup/env";
+// The environment config/env.ts validates at import time is provided by
+// tests/setup/env.ts, registered as a Vitest setupFile (see vitest.config.ts).
 import { describe, expect, it, vi } from "vitest";
 import { env } from "../../../../../src/config/env";
 import { requireAuth } from "../../../../../src/interfaces/http/middleware/auth.middleware";
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-
-
 
 function run(authorization?: string) {
   const req = { headers: authorization ? { authorization } : {} } as Request;

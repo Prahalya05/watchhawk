@@ -8,7 +8,12 @@ import { ensureHistory } from "../market-data/historical-backfill";
 import { getMarketStatus } from "../market-data/staleness";
 import { computeSymbolDiff, rankEntries } from "../../domain/diff/diff.engine";
 import type { DiscreteEventInput, EventExplanation } from "../../domain/diff/diff.types";
-import { AlreadyWatchedError, NotWatchedError, UnknownSymbolError, type WatchlistItemDto } from "../../domain/watchlist/watchlist.types";
+import {
+  AlreadyWatchedError,
+  NotWatchedError,
+  UnknownSymbolError,
+  type WatchlistItemDto,
+} from "../../domain/watchlist/watchlist.types";
 
 export async function listItems(userId: string): Promise<WatchlistItemDto[]> {
   const items = await prisma.watchlistItem.findMany({ where: { userId }, orderBy: { addedAt: "asc" } });
@@ -183,7 +188,7 @@ export async function getWatchlistDiff(userId: string): Promise<WatchlistDiffRes
     if (!state || !stats || !userState) return unavailableEntry(item.symbol, def.name, "NO_DATA");
 
     const relevantEvents = (eventsBySymbol.get(item.symbol) ?? []).filter(
-      (e) => e.eventTime.getTime() > userState.lastSeenAt.getTime()
+      (e) => e.eventTime.getTime() > userState.lastSeenAt.getTime(),
     );
 
     // stats is the Prisma row, which already carries computedAt/historyDays — passing
@@ -252,7 +257,10 @@ function unavailableEntry(symbol: string, name: string, reason: UnavailableReaso
 // The only mutating step in the read/ack split. Server-clock timestamp only — never
 // client-supplied — so concurrent devices trivially converge to max(lastSeenAt)
 // without any conflict-resolution logic.
-export async function ackSymbols(userId: string, symbols: string[] | "ALL"): Promise<{ acked: string[]; ackedAt: string }> {
+export async function ackSymbols(
+  userId: string,
+  symbols: string[] | "ALL",
+): Promise<{ acked: string[]; ackedAt: string }> {
   const targetSymbols =
     symbols === "ALL" ? (await prisma.watchlistItem.findMany({ where: { userId } })).map((i) => i.symbol) : symbols;
   if (targetSymbols.length === 0) return { acked: [], ackedAt: new Date().toISOString() };
@@ -283,7 +291,7 @@ export async function ackSymbols(userId: string, symbols: string[] | "ALL"): Pro
           lastSeen52wLow: stats?.low52w ?? 0,
         },
       });
-    })
+    }),
   );
 
   return { acked: targetSymbols, ackedAt: now.toISOString() };
