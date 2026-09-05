@@ -3,8 +3,8 @@ import type { NextFunction, Request, Response } from "express";
 import { env } from "../../../config/env";
 
 // Admin demo-trigger endpoints are guarded by a shared secret, not a user JWT — this is
-// operator/presenter tooling, not a user-facing feature. Checked from day one per plan
-// gap #7 (easy to forget since it's "just for the demo," but it's an open door otherwise).
+// operator tooling, not a user-facing feature. Guarded from day one: easy to forget,
+// since it is "just for the demo", but it is an open door otherwise.
 
 // Compared through fixed-width SHA-256 digests rather than `!==`. Two reasons: string
 // comparison short-circuits at the first differing byte, which leaks how much of a guess

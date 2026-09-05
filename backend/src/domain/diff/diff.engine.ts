@@ -18,7 +18,7 @@ import {
 } from "./scoring";
 import { explainDiscreteEvent, explainGapOpen, explainPriceMove, explainVolumeSpike } from "./explain";
 
-// Pure function: no reads, no writes. GET /watchlist is read-only per the plan — this
+// Pure function: no reads, no writes. GET /watchlist is read-only by design — this
 // is the one place that guarantee needs to hold, so keep this function free of any
 // Prisma/Redis calls. Callers (watchlist.service.ts) fetch everything up front.
 export function computeSymbolDiff(

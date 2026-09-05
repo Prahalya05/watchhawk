@@ -3,7 +3,6 @@ import { EventEmitter } from "events";
 // Compresses one simulated trading day into a short real-world window so that
 // session-relative concepts (volume-vs-time-of-day, overnight gaps, "nightly" stats
 // recompute) are all observable within a live demo instead of requiring real hours/days.
-// Flagged in the plan as a necessary addition beyond the original brief.
 export const SESSION_LENGTH_MS = 4 * 60 * 1000; // 4 minutes = one simulated trading day
 
 class VirtualClock extends EventEmitter {

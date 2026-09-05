@@ -17,8 +17,8 @@ interface ConnectionState {
 
 // One server-side Redis subscription to market:ticks/market:events for the whole
 // process, fanned out in-process to each connection's own subscribed-symbol set
-// (normally just that client's watchlist) — per the plan, this avoids one Redis
-// subscription per symbol or per connection.
+// (normally just that client's watchlist). This avoids one Redis subscription per
+// symbol or per connection.
 export function attachWsServer(httpServer: HttpServer): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true });
   const connections = new Set<ConnectionState>();

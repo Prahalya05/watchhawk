@@ -5,7 +5,7 @@ interface Props {
 
 // Surfaces cross-source disagreement rather than silently resolving it — the diff
 // engine's writer picks a primary/authoritative price regardless, but this tells the
-// user the sources didn't agree, per the brief's "conflicting data" requirement.
+// user the sources didn't agree.
 export default function DivergenceIndicator({ isDivergent, divergencePct }: Props) {
   if (!isDivergent) return null;
   return (

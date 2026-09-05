@@ -11,7 +11,7 @@ export interface DivergenceResult {
 
 // Real cross-vendor disagreement check: primary (Twelve Data) vs secondary (Yahoo)
 // prices for the same symbol, fetched moments apart from different venues/snapshots.
-// This is genuine data the brief asks us to handle, not scripted — except when forced
+// This is genuine cross-vendor disagreement, not scripted — except when forced
 // via the admin DIVERGE command for guaranteed demo timing (see market-state-writer.ts).
 export function checkDivergence(primary: Quote, secondary: Quote | null): DivergenceResult {
   if (!secondary) {

@@ -22,8 +22,8 @@ interface YahooChartResponse {
 
 // Primary provider for NSE quotes: Yahoo Finance's unofficial chart endpoint. No API key,
 // no signup, but no batch endpoint and no stability guarantee — this is an undocumented
-// endpoint that can change or start blocking without notice (flagged risk in the plan,
-// documented in README). It ended up primary rather than a pure fallback because Twelve
+// endpoint that can change or start blocking without notice (a known, accepted risk —
+// see docs/scope-and-limitations.md). It ended up primary rather than a pure fallback because Twelve
 // Data's free plan doesn't serve NSE symbols at all (confirmed via verify:live); Twelve
 // Data is still polled as a cross-check every cycle in composite-provider.ts. Self-
 // throttled client-side (bounded concurrency + spaced request slots, see below) since

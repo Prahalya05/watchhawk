@@ -3,7 +3,7 @@ import type { Severity } from "./diff.types";
 export const SEVERITY_ORDER: Record<Severity, number> = { NONE: 0, MINOR: 1, NOTABLE: 2, CRITICAL: 3 };
 export const MAX_EVENTS_PER_SYMBOL = 5;
 
-// Starting thresholds, deliberately not final-tuned (plan gap #8) — env-configurable
+// Starting thresholds, deliberately not final-tuned — env-configurable
 // would be the next step if these need adjusting live against real data behavior.
 //
 // Exported as data, not inlined as literals, because the explainability layer

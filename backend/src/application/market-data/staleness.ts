@@ -2,9 +2,9 @@ import { redis } from "../../infrastructure/db/redis";
 import { env } from "../../config/env";
 import { getActiveSymbols } from "../ingestion/subscription-manager";
 
-// NSE regular trading session: 9:15–15:30 IST, Monday–Friday. No holiday calendar
-// (flagged scope reduction in the plan) — a market holiday will read as OPEN with
-// unchanged prices rather than CLOSED.
+// NSE regular trading session: 9:15–15:30 IST, Monday–Friday. No holiday calendar (a
+// deliberate simplification, see docs/scope-and-limitations.md) — a market holiday will
+// read as OPEN with unchanged prices rather than CLOSED.
 export function getMarketStatus(now: Date = new Date()): "OPEN" | "CLOSED" {
   const istOffsetMs = 5.5 * 60 * 60 * 1000;
   const ist = new Date(now.getTime() + istOffsetMs + now.getTimezoneOffset() * 60 * 1000);

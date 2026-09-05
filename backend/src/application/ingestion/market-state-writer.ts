@@ -12,8 +12,8 @@ import type { Quote } from "../../domain/ports/market-data.port";
 const STATE_PREFIX = "market:state:";
 const NOMINAL_LIVE_SESSION_MS = 6.25 * 60 * 60 * 1000; // NSE: 9:15-15:30 IST
 
-// The single writer every provider funnels through (per the plan: "consistent
-// event-detection logic no matter the data source"). It applies any pending admin
+// The single writer every provider funnels through, so event-detection logic stays
+// consistent no matter which data source produced the quote. It applies any pending admin
 // commands, checks for genuine 52-week extremes against the durable SymbolStats table,
 // writes the Redis hash, and publishes to subscribers — all in one place.
 export async function writeMarketState(primary: Quote, secondary: Quote | null): Promise<void> {

@@ -77,8 +77,8 @@ export class TwelveDataProvider implements MarketDataProvider {
   }
 }
 
-// NSE convention for Twelve Data — confirmed at build/verify time per the plan's flagged
-// item; adjust here if the actual free-tier symbol format differs (e.g. plain ticker
+// NSE convention for Twelve Data — confirmed at verify time (`npm run verify:live`);
+// adjust here if the actual free-tier symbol format differs (e.g. plain ticker
 // without suffix, or a different exchange code).
 function toTwelveDataSymbol(symbol: string): string {
   return `${symbol}.NS`;

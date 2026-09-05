@@ -5,7 +5,7 @@ const REFCOUNT_PREFIX = "market:refcount:";
 // Reference-counted subscription: a symbol is only actively polled/ticked while at
 // least one user's watchlist references it. This is what keeps ingestion cost scaling
 // with distinct symbols demanded, not with user count — the whole point of the shared
-// market:state cache architecture from the plan.
+// market:state cache.
 export async function subscribe(symbol: string): Promise<number> {
   return redis.incr(REFCOUNT_PREFIX + symbol);
 }
@@ -48,7 +48,7 @@ async function scanRefcountKeys(): Promise<string[]> {
 }
 
 // Rebuilds market:refcount:* from the durable WatchlistItem table. Required on every
-// startup because Redis is not durable (see plan gap #5) — without this, a Redis
+// startup because Redis is not durable — without this, a Redis
 // restart would silently break the "only poll watched symbols" architecture.
 export async function reconcileRefcounts(symbolCounts: Map<string, number>): Promise<void> {
   const existingKeys = await scanRefcountKeys();

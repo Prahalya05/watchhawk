@@ -11,10 +11,10 @@ import { startScheduledJobs } from "./application/jobs/scheduler";
 async function main() {
   await prisma.$connect();
 
-  // Required startup step, not optional polish (plan gap #5/#2): Redis holds no
-  // durable state, so refcounts must be rebuilt from the durable WatchlistItem table
-  // on every boot, or the shared-cache "only poll watched symbols" architecture
-  // silently breaks after any Redis restart.
+  // Required startup step, not optional polish: Redis holds no durable state, so
+  // refcounts must be rebuilt from the durable WatchlistItem table on every boot, or the
+  // shared-cache "only poll watched symbols" architecture silently breaks after any
+  // Redis restart.
   const grouped = await prisma.watchlistItem.groupBy({ by: ["symbol"], _count: { symbol: true } });
   await reconcileRefcounts(new Map(grouped.map((g) => [g.symbol, g._count.symbol])));
 

@@ -20,7 +20,7 @@ const MAX_HISTORY_ENTRIES = 90;
 // cap is moot here. Replay mode makes no network calls and needs no spacing either.
 
 // Runs once at startup for any *watched* symbol with no cached history (first boot, or
-// after a Redis restart — Redis durability gap flagged in the plan). Scoped to watched
+// after a Redis restart, since Redis holds no durable state). Scoped to watched
 // symbols rather than the whole static universe for the same reason the poll loop is:
 // backfilling 34 symbols nobody has on a watchlist is ~34 seconds of provider budget
 // spent on data no one will read, and the cost grows with the universe rather than with

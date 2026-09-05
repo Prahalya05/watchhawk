@@ -6,8 +6,6 @@ watches carries a server-side snapshot of what that user last saw; each request 
 watchlist recomputes the difference between that snapshot and the current state and
 returns it as a list of typed, severity-scored events.
 
-The project was built for Groww Code 2026.
-
 ## What the system does
 
 - **Per-user snapshots.** For every `(user, symbol)` pair the backend stores the last
