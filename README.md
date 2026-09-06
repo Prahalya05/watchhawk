@@ -209,8 +209,8 @@ npm run format:check && npm run lint && npm run typecheck && npm test
 | `npm run lint`             | Both packages, **including the ring boundary rules** described above   |
 | `npm run format:check`     | Prettier, repo-wide                                                    |
 | `npm run typecheck`        | `tsc --noEmit` in backend and frontend                                 |
-| `npm run test:unit`        | 106 tests over the inner rings and 65 over `frontend/src/lib/`; no I/O |
-| `npm run test:integration` | 7 tests driving the real Express app over HTTP                         |
+| `npm run test:unit`        | 194 tests over the inner rings and 65 over `frontend/src/lib/`; no I/O |
+| `npm run test:integration` | 9 tests driving the real Express app over HTTP                         |
 | `npm run build`            | Backend `tsc` build and frontend Vite build                            |
 
 A pre-commit hook runs lint and formatting over staged files; a commit-msg hook enforces

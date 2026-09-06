@@ -2,7 +2,7 @@
 
 ## 1. Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20+ and npm (the version in `.nvmrc`, and what CI runs)
 - Docker Desktop (for local Postgres + Redis)
 
 ## 2. Backing services
@@ -54,6 +54,8 @@ npm run dev                 # http://localhost:4000
 | `npm run prisma:studio`           | Prisma Studio                                                     |
 | `npm run seed`                    | Whole-universe history + stats backfill                           |
 | `npm test` / `npm run test:watch` | Vitest (diff engine, scoring, explanations, command parser, auth) |
+| `npm run test:unit`               | The `unit` project only — no I/O                                  |
+| `npm run test:integration`        | The `integration` project only — boots the real app over HTTP     |
 | `npm run verify:live`             | Call the real provider classes against the real APIs              |
 
 ### Tests
@@ -63,7 +65,7 @@ npm test
 ```
 
 No database or network is needed — the covered units (diff engine, scorer, explanation
-traces, command parser, auth service) are pure or self-contained. `src/test/env.ts`
+traces, command parser, auth service) are pure or self-contained. `tests/setup/env.ts`
 supplies fallback environment values so the suite runs in a fresh checkout.
 
 ### Live-data check
@@ -120,6 +122,8 @@ severity thresholds produce visibly different results per symbol.
 | `GEMINI_TIMEOUT_MS`              | `8000`                                                      | Per-call abort timeout                                                                                                                                    |
 | `GEMINI_MAX_REQUESTS_PER_MINUTE` | `8`                                                         | Self-imposed ceiling; exhaustion degrades to the deterministic path                                                                                       |
 | `GEMINI_MAX_REQUESTS_PER_DAY`    | `200`                                                       | Self-imposed daily ceiling                                                                                                                                |
+| `EVENT_FEED_ENABLED`             | `auto`                                                      | Real NEWS / CORPORATE_ACTION ingestion. `auto` follows `MARKET_DATA_MODE` (on in live, off in replay); `on` forces it even in replay; `off` disables it   |
+| `EVENT_FEED_INTERVAL_MS`         | `900000`                                                    | How often the news and corporate-action feeds are polled                                                                                                  |
 
 `config/env.ts` validates all of this with Zod and calls `process.exit(1)` on a missing
 or invalid required variable.
