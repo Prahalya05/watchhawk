@@ -170,6 +170,9 @@ export async function getWatchlistDiff(userId: string): Promise<WatchlistDiffRes
       severity: row.severity as DiscreteEventInput["severity"],
       eventTime: row.eventTime,
       payload: row.payload as Record<string, unknown>,
+      // Carried through so the explanation can distinguish a real feed item from an
+      // admin-triggered demo one instead of describing every discrete event as demo-only.
+      source: row.source,
     });
     eventsBySymbol.set(row.symbol, list);
   }

@@ -2,6 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-950 text-gray-100;
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-canvas text-gray-100 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  }
+
+  /* A quieter scrollbar than the OS default, which otherwise sits as a bright bar
+     against the near-black canvas. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme("colors.hairline.strong") transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    @apply rounded-full border-2 border-solid border-transparent bg-hairline-strong bg-clip-content;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-canvas;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-hairline bg-surface;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden rounded bg-surface-raised;
+  }
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent;
+    content: "";
+    animation: skeleton-shimmer 1.5s infinite;
+  }
+  @keyframes skeleton-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Numeric columns: line up decimals and keep width stable as digits tick. */
+  .num {
+    @apply font-mono tabular-nums;
+    font-variant-numeric: tabular-nums;
+  }
 }

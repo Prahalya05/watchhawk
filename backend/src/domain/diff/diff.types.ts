@@ -96,6 +96,12 @@ export interface DiscreteEventInput {
   severity: Severity;
   eventTime: Date;
   payload: Record<string, unknown>;
+  /**
+   * Which feed recorded this, or `ADMIN_DEMO` for one triggered from the control panel.
+   * Optional so older callers keep compiling; absent reads as "provenance not recorded",
+   * which the explanation says outright rather than assuming either answer.
+   */
+  source?: string;
 }
 
 export interface DiffEntry {

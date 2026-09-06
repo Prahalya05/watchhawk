@@ -1,4 +1,5 @@
 import { redis } from "../../infrastructure/db/redis";
+import { prisma } from "../../infrastructure/db/prisma";
 
 const REFCOUNT_PREFIX = "market:refcount:";
 
@@ -45,6 +46,24 @@ async function scanRefcountKeys(): Promise<string[]> {
     for (const key of keys) found.add(key);
   } while (cursor !== "0");
   return [...found];
+}
+
+/**
+ * Reads the durable truth and hands it to reconcileRefcounts.
+ *
+ * Run at startup *and* on a timer. Startup alone was not enough: subscribe() and
+ * unsubscribe() are called after their transaction commits (see watchlist.service.ts), so
+ * a crash in that window leaves Postgres and Redis disagreeing with no boot in sight to
+ * fix it. Drift in the safe direction is harmless — a refcount too high just polls a
+ * symbol nobody watches. Drift the other way is the bad one: a symbol at 0 that somebody
+ * is watching drops out of getActiveSymbols() and stops being polled entirely, so its row
+ * quietly ages into "stale" with no error logged anywhere and nothing to notice.
+ *
+ * The periodic pass turns that from permanent into bounded.
+ */
+export async function reconcileRefcountsFromDatabase(): Promise<void> {
+  const grouped = await prisma.watchlistItem.groupBy({ by: ["symbol"], _count: { symbol: true } });
+  await reconcileRefcounts(new Map(grouped.map((g) => [g.symbol, g._count.symbol])));
 }
 
 // Rebuilds market:refcount:* from the durable WatchlistItem table. Required on every

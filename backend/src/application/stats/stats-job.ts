@@ -1,10 +1,15 @@
 import { getActiveSymbols } from "../ingestion/subscription-manager";
-import { readHistory, computeAndStoreStats } from "./stats.service";
+import { readWindow } from "../market-data/history.store";
+import { computeAndStoreStats } from "./stats.service";
 
-// Periodic recompute of the derived, non-live parts of SymbolStats (avgVolume20d,
-// stdevReturn20d, avgOvernightGapPct) from whatever's currently cached in
-// market:history. high52w/low52w are deliberately left to market-state-writer.ts,
-// which tracks them live off actual incoming prices (see stats.service.ts comment).
+// Periodic recompute of SymbolStats from the rolling 52-week window in market:history,
+// plus the current session's in-progress bar (folded in by computeAndStoreStats).
+//
+// This now recomputes high52w/low52w as well, which it deliberately did not before. The
+// old reason was sound for the old data: a recompute over ~90 days could only shrink a
+// genuine 52-week extreme, so the running high maintained by market-state-writer.ts was
+// the better of two bad options. A real rolling window removes the trade-off — see the
+// comment in stats.service.ts for why refusing to recompute is now the wrong answer.
 //
 // Scoped to actively-watched symbols, not the whole static universe. The README's claim
 // is that cost scales with symbols people actually watch rather than with the universe
@@ -16,7 +21,7 @@ export async function runStatsJob(): Promise<string[]> {
   const recomputed: string[] = [];
 
   for (const symbol of symbols) {
-    const bars = await readHistory(symbol);
+    const bars = await readWindow(symbol);
     if (bars.length > 0) {
       await computeAndStoreStats(symbol, bars);
       recomputed.push(symbol);

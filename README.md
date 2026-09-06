@@ -16,6 +16,12 @@ returns it as a list of typed, severity-scored events.
   (`PRICE_MOVE`, `VOLUME_SPIKE`, `GAP_OPEN`, `FIFTY_TWO_WEEK_EXTREME`, `NEWS`,
   `RATING_CHANGE`, `CORPORATE_ACTION`) and each is scored `MINOR` / `NOTABLE` /
   `CRITICAL` against the symbol's own statistics, not against a fixed percentage.
+- **Real news and corporate actions.** Headlines come from Google News' India-scoped RSS
+  search and dividends/splits from Yahoo's chart endpoint; both are ingested, deduplicated
+  and scored on a schedule. News severity measures how much is being published relative to
+  what that symbol normally draws — never what the headlines say. Analyst rating changes
+  have no free source covering NSE, which the app reports as an unsupported feed rather
+  than as an absence of ratings.
 - **Decision traces.** Every event carries the inputs, the arithmetic, the thresholds
   tested and the provenance of the underlying quote. The frontend renders this trace
   when an event badge is opened.
@@ -138,14 +144,14 @@ formatting mistake is reported in seconds rather than after a build:
 npm run format:check && npm run lint && npm run typecheck && npm test
 ```
 
-| Command                    | What it covers                                                       |
-| -------------------------- | -------------------------------------------------------------------- |
-| `npm run lint`             | Both packages, **including the ring boundary rules** described above |
-| `npm run format:check`     | Prettier, repo-wide                                                  |
-| `npm run typecheck`        | `tsc --noEmit` in backend and frontend                               |
-| `npm run test:unit`        | 106 tests over the inner rings; no I/O                               |
-| `npm run test:integration` | 7 tests driving the real Express app over HTTP                       |
-| `npm run build`            | Backend `tsc` build and frontend Vite build                          |
+| Command                    | What it covers                                                         |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `npm run lint`             | Both packages, **including the ring boundary rules** described above   |
+| `npm run format:check`     | Prettier, repo-wide                                                    |
+| `npm run typecheck`        | `tsc --noEmit` in backend and frontend                                 |
+| `npm run test:unit`        | 106 tests over the inner rings and 65 over `frontend/src/lib/`; no I/O |
+| `npm run test:integration` | 7 tests driving the real Express app over HTTP                         |
+| `npm run build`            | Backend `tsc` build and frontend Vite build                            |
 
 A pre-commit hook runs lint and formatting over staged files; a commit-msg hook enforces
 [Conventional Commits](https://www.conventionalcommits.org/). See

@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as assistantApi from "../api/assistant.api";
 import type { AssistantResult } from "../types";
 import { WATCHLIST_DIFF_KEY, WATCHLIST_ITEMS_KEY } from "../hooks/useWatchlist";
+import { cn } from "../lib/cn";
+import Button from "./ui/Button";
 
 const STATUS_STYLES: Record<AssistantResult["status"], string> = {
-  EXECUTED: "border-green-900 bg-green-950/40 text-green-200",
-  NEEDS_CONFIRMATION: "border-yellow-900 bg-yellow-950/40 text-yellow-200",
-  REJECTED: "border-red-900/70 bg-red-950/30 text-red-200",
+  EXECUTED: "border-l-up bg-up/5 text-up",
+  NEEDS_CONFIRMATION: "border-l-severity-notable bg-severity-notable/5 text-severity-notable",
+  REJECTED: "border-l-severity-critical bg-severity-critical/5 text-severity-critical",
 };
 
 // Natural-language command bar.
@@ -17,10 +19,11 @@ const STATUS_STYLES: Record<AssistantResult["status"], string> = {
 // can't tell can't learn which phrasings are free and reliable. And it doesn't
 // auto-execute a removal: the server returns NEEDS_CONFIRMATION for destructive intents
 // and this renders the confirm step rather than deciding on the user's behalf.
-export default function CommandBar() {
+const CommandBar = forwardRef<HTMLInputElement>(function CommandBar(_props, inputRef) {
   const queryClient = useQueryClient();
   const [text, setText] = useState("");
   const [result, setResult] = useState<AssistantResult | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
   // The exact text the pending result was parsed from. Confirming used to re-send
   // whatever was in the input box at that moment, so editing the box between "remove X?"
   // and "Yes, remove X" executed the edited command while the button still promised X.
@@ -39,6 +42,7 @@ export default function CommandBar() {
       setResult(data);
       if (data.status === "NEEDS_CONFIRMATION") setPendingInput(variables.input);
       if (data.status === "EXECUTED") {
+        setHistory((prev) => [variables.input, ...prev.filter((h) => h !== variables.input)].slice(0, 6));
         setText("");
         queryClient.invalidateQueries({ queryKey: WATCHLIST_DIFF_KEY });
         queryClient.invalidateQueries({ queryKey: WATCHLIST_ITEMS_KEY });
@@ -59,85 +63,94 @@ export default function CommandBar() {
     command.mutate({ input, confirm: false });
   }
 
+  const suggestions = history.length > 0 ? history : (status.data?.examples ?? []);
+  const suggestionLabel = history.length > 0 ? "Recent" : "Try";
+
   return (
-    <div className="mb-4">
+    <div className="card p-3">
       <form onSubmit={submit} className="flex gap-2">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type a command — add TCS, why is SUZLON flagged, dismiss all…"
-          maxLength={500}
-          className="flex-1 rounded-md border border-gray-800 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-gray-600 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={command.isPending || text.trim().length === 0}
-          className="rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white disabled:opacity-40"
-        >
-          {command.isPending ? "Running…" : "Run"}
-        </button>
+        <div className="relative flex-1">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-accent">⌘</span>
+          <input
+            ref={inputRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Ask or command — add TCS · why is SUZLON flagged · dismiss all"
+            maxLength={500}
+            className="h-9 w-full rounded-lg border border-hairline-strong bg-surface-raised pl-9 pr-3 text-sm text-gray-100 placeholder:text-gray-600"
+          />
+        </div>
+        <Button type="submit" variant="primary" loading={command.isPending} disabled={text.trim().length === 0}>
+          {command.isPending ? "Running" : "Run"}
+        </Button>
       </form>
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-600">
-        <span>Try:</span>
-        {(status.data?.examples ?? []).map((example) => (
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-600">
+        <span className="text-gray-500">{suggestionLabel}:</span>
+        {suggestions.map((example) => (
           <button
             key={example}
             type="button"
             onClick={() => setText(example)}
-            className="rounded border border-gray-900 px-1.5 py-0.5 hover:border-gray-700 hover:text-gray-400"
+            className="rounded border border-hairline px-1.5 py-0.5 text-gray-500 hover:border-hairline-strong hover:text-gray-300"
           >
             {example}
           </button>
         ))}
 
         <span
-          className="ml-auto"
+          className="ml-auto flex items-center gap-1.5"
           title={
             status.data?.budget
               ? `Gemini handles phrasings the built-in patterns can't read. ${status.data.budget.dayUsed}/${status.data.budget.dayLimit} requests used today.`
               : "No Gemini key configured — commands are read by the built-in pattern parser, which covers the common phrasings."
           }
         >
-          {status.data
-            ? status.data.available
-              ? `AI fallback on · ${status.data.model}`
-              : status.data.budget
-                ? "AI fallback paused (budget spent) · built-in patterns still work"
-                : "Built-in patterns only · no AI key"
-            : ""}
+          {status.data && (
+            <>
+              <span className={cn("h-1.5 w-1.5 rounded-full", status.data.available ? "bg-up" : "bg-gray-600")} />
+              {status.data.available
+                ? `AI fallback · ${status.data.model}`
+                : status.data.budget
+                  ? "AI paused · patterns still work"
+                  : "Built-in patterns only"}
+            </>
+          )}
         </span>
       </div>
 
       {command.isError && (
-        <p className="mt-2 rounded-md border border-red-900/70 bg-red-950/30 px-3 py-2 text-sm text-red-200">
+        <p className="mt-2 rounded-lg border border-l-2 border-hairline border-l-severity-critical bg-severity-critical/5 px-3 py-2 text-sm text-severity-critical">
           Couldn't reach the assistant.
         </p>
       )}
 
       {result && (
-        <div className={`mt-2 rounded-md border px-3 py-2 text-sm ${STATUS_STYLES[result.status]}`}>
-          <p>{result.message}</p>
+        <div
+          className={cn(
+            "mt-2 rounded-lg border border-hairline border-l-2 px-3 py-2 text-sm",
+            STATUS_STYLES[result.status],
+          )}
+        >
+          <p className="text-gray-200">{result.message}</p>
 
           {pendingConfirmation && (
             <div className="mt-2 flex gap-2">
-              <button
+              <Button
+                size="sm"
                 onClick={() => command.mutate({ input: pendingInput, confirm: true })}
-                disabled={command.isPending}
-                className="rounded-md bg-yellow-200 px-2.5 py-1 text-xs font-medium text-yellow-950 hover:bg-yellow-100 disabled:opacity-50"
+                loading={command.isPending}
+                className="border-severity-notable/40 bg-severity-notable/15 text-severity-notable hover:bg-severity-notable/25"
               >
                 Yes, remove {pendingConfirmation.intent.symbol}
-              </button>
-              <button
-                onClick={() => setResult(null)}
-                className="rounded-md border border-gray-700 px-2.5 py-1 text-xs text-gray-300 hover:bg-gray-900"
-              >
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setResult(null)}>
                 Cancel
-              </button>
+              </Button>
             </div>
           )}
 
-          <p className="mt-1.5 text-[11px] opacity-70">
+          <p className="mt-1.5 text-[11px] text-gray-500">
             Read by {result.interpretedBy === "GEMINI" ? "Gemini" : "built-in patterns (no AI call)"}
             {result.intent.action !== "UNKNOWN" && ` → ${result.intent.action}`}
             {result.intent.symbol && ` ${result.intent.symbol}`}
@@ -147,4 +160,6 @@ export default function CommandBar() {
       )}
     </div>
   );
-}
+});
+
+export default CommandBar;

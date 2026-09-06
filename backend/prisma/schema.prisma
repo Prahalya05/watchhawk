@@ -53,6 +53,18 @@ model SymbolEvent {
   payload   Json
   createdAt DateTime  @default(now())
 
+  // Where this event came from: a feed provider's name, or ADMIN_DEMO for one triggered
+  // through the control panel. Read by the explanation layer, which must not describe a
+  // real dividend as demo-triggered or a demo headline as real reporting.
+  source String @default("ADMIN_DEMO")
+
+  // The provider's own stable id for the underlying item. Null for anything not sourced
+  // from a feed, and the unique constraint below is what makes re-polling idempotent:
+  // Postgres treats NULLs as distinct, so admin triggers never collide with each other
+  // while a re-fetched headline collides with itself and is skipped.
+  externalId String?
+
+  @@unique([symbol, externalId])
   @@index([symbol, eventTime])
   @@index([symbol, eventType, eventTime])
 }

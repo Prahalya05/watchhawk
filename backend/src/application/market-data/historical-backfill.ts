@@ -1,23 +1,19 @@
-import { redis } from "../../infrastructure/db/redis";
 import { SYMBOL_MAP, SYMBOL_UNIVERSE } from "../../domain/market/symbol-universe";
+import { HISTORY_FETCH_DAYS, FULL_WINDOW_MIN_BARS } from "../../domain/market/history-window";
 import { compositeProvider } from "./composite-provider";
+import { readWindow, saveBars } from "./history.store";
 import { getActiveSymbols } from "../ingestion/subscription-manager";
 import type { DailyBar } from "../../domain/ports/market-data.port";
 import { ReplayProvider } from "../../infrastructure/market-data/providers/replay.provider";
 import { computeAndStoreStats } from "../stats/stats.service";
 import { seedMarketStateFromHistory } from "../ingestion/market-state-writer";
 
-const HISTORY_DAYS = 90; // Depth requested from the live provider's daily-chart endpoint;
-// SymbolStats.historyDays records whatever we actually got rather than assuming this
-// exact number, so the UI can be honest about it.
-const MAX_HISTORY_ENTRIES = 90;
-
-// No external spacing needed here: the backfill provider in live mode is the composite
-// provider's shared Yahoo instance, which reserves slots from the same client-side rate
-// limiter the poll loop uses (see YahooProvider.reserveSlot) regardless of caller, so a
-// backfill running alongside a poll cycle cannot double the outbound request rate.
-// Twelve Data's free plan can't serve NSE history at all (verify:live), so its per-minute
-// cap is moot here. Replay mode makes no network calls and needs no spacing either.
+// Depth requested from the provider's daily-chart endpoint: a full 52 weeks plus slack,
+// because a calendar range does not map cleanly onto trading days. It used to be 90,
+// which is what made "52-week high" a ~90-day high. Retention and scoring are decided by
+// the window in domain/market/history-window.ts, not by this number —
+// SymbolStats.historyDays still records what we actually got rather than what we asked
+// for, so a symbol the provider only partly serves is reported at its true depth.
 
 // Runs once at startup for any *watched* symbol with no cached history (first boot, or
 // after a Redis restart, since Redis holds no durable state). Scoped to watched
@@ -52,10 +48,11 @@ export async function backfillUniverse(): Promise<void> {
 
 // Called when a symbol gains its first watcher, so an added symbol has real history (and
 // therefore real SymbolStats) before its first diff rather than showing up as NO_DATA
-// until some later sweep. A no-op once history exists, so repeat adds cost one ZCARD.
+// until some later sweep. Cheap and idempotent once history exists: backfillSymbol's own
+// "already have a window" check is the guard, so both entry points agree on what counts
+// as present — a key holding nothing but bars that have aged out of the window is not.
 export async function ensureHistory(symbol: string): Promise<void> {
   if (!SYMBOL_MAP.has(symbol)) return;
-  if ((await redis.zcard(historyKey(symbol))) > 0) return;
 
   const replayFallback = new ReplayProvider();
   await replayFallback.start();
@@ -63,40 +60,40 @@ export async function ensureHistory(symbol: string): Promise<void> {
 }
 
 async function backfillSymbol(symbol: string, replayFallback: ReplayProvider): Promise<void> {
-  const key = historyKey(symbol);
-  if ((await redis.zcard(key)) > 0) {
+  const existing = await readWindow(symbol);
+  if (existing.length > 0) {
     // History survived but state may not have (e.g. a Redis snapshot restored without
     // the live keys). Seeding is a no-op when real state is already present, so it is
     // safe to attempt on every boot.
     await seedMarketStateFromHistory(symbol);
+    // A window this short is not a 52-week window. It happens on an upgrade from the old
+    // 90-day retention, and after a provider that only partly served the range — either
+    // way the next refresh pass is where it gets deepened, so say so once rather than
+    // letting the shortfall sit silently behind a "52-week" label.
+    if (existing.length < FULL_WINDOW_MIN_BARS) {
+      console.log(
+        `[backfill] ${symbol} holds ${existing.length} bars, short of a full 52-week window ` +
+          `(~${FULL_WINDOW_MIN_BARS}+); extremes are reported over the shorter window until it fills`,
+      );
+    }
     return;
   }
 
   let bars: DailyBar[] = [];
   try {
-    bars = await compositeProvider.getBackfillProvider().fetchDailyHistory(symbol, HISTORY_DAYS);
+    bars = await compositeProvider.getBackfillProvider().fetchDailyHistory(symbol, HISTORY_FETCH_DAYS);
   } catch (err) {
     console.warn(`[backfill] real history fetch failed for ${symbol}, using synthetic:`, (err as Error).message);
   }
   if (bars.length === 0) {
-    bars = await replayFallback.fetchDailyHistory(symbol, HISTORY_DAYS);
+    bars = await replayFallback.fetchDailyHistory(symbol, HISTORY_FETCH_DAYS);
   }
   if (bars.length === 0) return;
 
-  const pipeline = redis.pipeline();
-  for (const bar of bars) {
-    pipeline.zadd(key, new Date(bar.date).getTime(), JSON.stringify(bar));
-  }
-  pipeline.zremrangebyrank(key, 0, -(MAX_HISTORY_ENTRIES + 1));
-  await pipeline.exec();
-
+  await saveBars(symbol, bars);
   await computeAndStoreStats(symbol, bars);
   // Give the symbol an initial (honestly-labelled stale) state off its last bar, so it
   // is renderable the moment someone adds it rather than only after a poll cycle —
   // which in live mode may not come until the market next opens.
   await seedMarketStateFromHistory(symbol);
-}
-
-function historyKey(symbol: string): string {
-  return `market:history:${symbol}`;
 }

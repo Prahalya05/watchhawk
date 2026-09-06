@@ -1,4 +1,7 @@
-import type { Prisma } from "@prisma/client";
+// A value import, not `import type`: Prisma.PrismaClientKnownRequestError is used below
+// as a constructor in an instanceof check, which is what tells a duplicate feed item
+// (P2002 on the external id) apart from a real write failure.
+import { Prisma } from "@prisma/client";
 import { redis } from "../../infrastructure/db/redis";
 import { prisma } from "../../infrastructure/db/prisma";
 import { effectiveMarketDataMode } from "../../config/env";
@@ -6,6 +9,7 @@ import { publish, CHANNELS } from "../../infrastructure/pubsub/redis-pubsub";
 import { checkDivergence } from "../../domain/market/divergence";
 import { getMarketStatus } from "../market-data/staleness";
 import { drainCommands } from "../../infrastructure/market-data/command-queue";
+import { recordIntradayPrice } from "../market-data/history.store";
 import { SESSION_LENGTH_MS } from "../../infrastructure/market-data/providers/virtual-clock";
 import type { Quote } from "../../domain/ports/market-data.port";
 
@@ -53,6 +57,18 @@ export async function writeMarketState(primary: Quote, secondary: Quote | null):
   const divergence = forcedDivergence
     ? { ...forcedDivergence, primaryPrice: effectivePrimary.price, secondaryPrice: effectiveSecondary?.price ?? null }
     : checkDivergence(effectivePrimary, effectiveSecondary);
+
+  // Fold this tick into today's in-progress daily bar BEFORE the extreme check below.
+  // The order matters: checkFiftyTwoWeekExtreme writes a new high straight to SymbolStats
+  // so the event fires on the tick that earned it, and the periodic recompute derives the
+  // same figure from the bars. If the bar did not already carry this price, a recompute
+  // landing between the two would drop the high back to the last closed session's and
+  // re-fire the event on the very next tick.
+  await recordIntradayPrice(symbol, {
+    price: effectivePrimary.price,
+    dayOpen: effectivePrimary.dayOpen,
+    volume: effectivePrimary.volume,
+  });
 
   await checkFiftyTwoWeekExtreme(symbol, effectivePrimary.price);
 
@@ -187,15 +203,47 @@ async function checkFiftyTwoWeekExtreme(symbol: string, price: number): Promise<
   await writeDiscreteEvent(symbol, "FIFTY_TWO_WEEK_EXTREME", "NOTABLE", { direction, price });
 }
 
+export interface DiscreteEventOptions {
+  /** Feed provider name, or ADMIN_DEMO. Rendered by the explanation, so it must be true. */
+  source?: string;
+  /** The provider's stable id for the item. Its absence is what marks a non-feed event. */
+  externalId?: string | null;
+  /** When the thing actually happened. Defaults to now, which is right for a live detection. */
+  eventTime?: Date;
+}
+
 export async function writeDiscreteEvent(
   symbol: string,
   eventType: "NEWS" | "RATING_CHANGE" | "CORPORATE_ACTION" | "FIFTY_TWO_WEEK_EXTREME",
   severity: "MINOR" | "NOTABLE" | "CRITICAL",
   payload: Record<string, unknown>,
-): Promise<void> {
-  const event = await prisma.symbolEvent.create({
-    data: { symbol, eventType, severity, eventTime: new Date(), payload: payload as Prisma.InputJsonValue },
-  });
+  options: DiscreteEventOptions = {},
+): Promise<boolean> {
+  const { source = "ADMIN_DEMO", externalId = null, eventTime = new Date() } = options;
+
+  let event;
+  try {
+    event = await prisma.symbolEvent.create({
+      data: {
+        symbol,
+        eventType,
+        severity,
+        eventTime,
+        source,
+        externalId,
+        payload: payload as Prisma.InputJsonValue,
+      },
+    });
+  } catch (err) {
+    // P2002 on (symbol, externalId) means this exact feed item is already recorded, which
+    // is the normal outcome of re-polling a feed rather than an error: a headline is still
+    // on the feed an hour after it was ingested. Relying on the constraint instead of a
+    // read-then-write also makes two concurrent ingest passes safe — a check first would
+    // let both see "not present" and write the same headline twice.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return false;
+    throw err;
+  }
+
   await publish(CHANNELS.EVENTS, {
     symbol,
     eventType,
@@ -203,4 +251,5 @@ export async function writeDiscreteEvent(
     eventTime: event.eventTime.toISOString(),
     payload,
   });
+  return true;
 }

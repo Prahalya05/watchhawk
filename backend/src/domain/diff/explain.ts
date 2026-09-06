@@ -16,6 +16,7 @@ import {
   horizonScale,
   type SeverityThresholds,
 } from "./scoring";
+import { FULL_WINDOW_MIN_BARS, HISTORY_WINDOW_WEEKS } from "../market/history-window";
 
 // Builds the "why did I see this?" trace for each event the diff engine emits.
 //
@@ -303,6 +304,79 @@ export function explainGapOpen(args: {
   };
 }
 
+// The window this extreme was measured over, stated at its true depth. It used to say
+// "'52-week' is actually a 90-day window" — accurate then, and the honest thing to print
+// while that was true. The window is a real rolling 52 weeks now, so the caveat's job has
+// changed: it reports the window that was actually used, and only flags a shortfall when
+// the symbol genuinely has less history behind it than the window can hold.
+function fiftyTwoWeekWindowCaveat(historyDays?: number): string {
+  if (historyDays === undefined) {
+    return `Measured over a rolling ${HISTORY_WINDOW_WEEKS}-week window of daily bars plus the current session's live extremes. How many bars stood behind this particular figure was not recorded alongside it.`;
+  }
+  if (historyDays >= FULL_WINDOW_MIN_BARS) {
+    return `Measured over a rolling ${HISTORY_WINDOW_WEEKS}-week window — ${historyDays} daily bars plus the current session's live high and low. Bars older than ${HISTORY_WINDOW_WEEKS} weeks leave the window, so this extreme can fall as well as rise: an old high ages out rather than standing forever.`;
+  }
+  return `This symbol has only ${historyDays} daily bars behind it, short of the ~${FULL_WINDOW_MIN_BARS} sessions a full ${HISTORY_WINDOW_WEEKS}-week window holds, so the extreme is over that shorter window rather than a true 52 weeks. The daily history refresh deepens it as more sessions accumulate.`;
+}
+
+// Where a news / rating / corporate-action event came from, and what that means for how
+// much weight to put on it. This used to be a single flat sentence saying all three types
+// were demo-triggered with no provider behind them. That was true when it was written and
+// is now true of exactly one of them, so the caveat is derived from the event's recorded
+// source rather than asserted for the category — describing a real dividend as a demo
+// trigger would be as misleading as the reverse.
+export const ADMIN_DEMO_SOURCE = "ADMIN_DEMO";
+
+function feedCaveats(eventType: string, source: string | undefined, payload: Record<string, unknown>): string[] {
+  if (source === undefined) {
+    return [
+      "This event predates provenance tracking, so which source recorded it was not stored. Treat it as unverified.",
+    ];
+  }
+  if (source === ADMIN_DEMO_SOURCE) {
+    return [
+      "This event was triggered from the admin control panel for demonstration. It is not a real headline, rating or corporate action, and no provider reported it.",
+    ];
+  }
+
+  const caveats = [`Recorded from a live feed (${source}), not triggered by hand.`];
+  if (eventType === "NEWS") {
+    // The single most important disclosure on a news event: the severity is a measure of
+    // how much is being written, and nothing in this system reads a headline.
+    caveats.push(
+      "Severity here reflects how many separate stories this symbol drew in the last few hours, measured against what it normally draws — how much is being published, not what any of it says. Nothing in this system reads or judges the content of a headline.",
+    );
+    caveats.push(
+      "Headlines are matched to a symbol by company name and then re-checked against the ticker, so a story that names the company only in its body will be missed. A missed headline is the intended failure: attributing another company's news to this row would be worse.",
+    );
+    caveats.push(
+      "Several outlets running the same announcement are collapsed into one story when their headlines are near-identical, but differently-worded coverage of one event still counts more than once. The count is of reports, not of underlying facts.",
+    );
+    if (payload.cappedForMissingBaseline === true) {
+      caveats.push(
+        "This symbol has not been tracked long enough to know what a normal amount of coverage looks like for it, so severity was held to NOTABLE. CRITICAL means unusual for this symbol, and that cannot be claimed yet.",
+      );
+    }
+  }
+  if (eventType === "CORPORATE_ACTION") {
+    caveats.push(
+      "Dividend severity is the payout as a share of the current price, because that is roughly how far the price drops on the ex-date. A split is always the loudest: it restates every share count and price you last looked at.",
+    );
+  }
+  if (eventType === "RATING_CHANGE") {
+    caveats.push(
+      "Severity is the distance the grade moved on a fixed analyst ladder. An initiation, or a grade the ladder does not recognise, has no distance to measure and is reported at the bottom of the scale.",
+    );
+  }
+  return caveats;
+}
+
+function discreteRuleSource(source?: string): string {
+  return source === undefined || source === ADMIN_DEMO_SOURCE
+    ? "backend/src/interfaces/http/routes/admin.routes.ts (trigger)"
+    : "backend/src/application/ingestion/event-feed-ingestor.ts (ingestion)";
+}
+
 // Discrete events aren't scored at read time: they were classified when they were
 // recorded, and the diff engine's only job is deciding they are newer than your
 // baseline. Saying so plainly matters more than dressing it up as a computation.
@@ -311,27 +385,24 @@ export function explainDiscreteEvent(args: {
   severity: Severity;
   eventTime: Date;
   payload: Record<string, unknown>;
+  source?: string;
   state: MarketStateSnapshot;
   stats: SymbolStatsSnapshot;
   baseline: UserSymbolBaseline;
 }): EventExplanation {
-  const { eventType, severity, eventTime, payload, state, stats, baseline } = args;
+  const { eventType, severity, eventTime, payload, source, state, stats, baseline } = args;
   const isExtreme = eventType === "FIFTY_TWO_WEEK_EXTREME";
 
   const caveats: string[] = [
     "This event was classified when it was recorded, not re-scored just now. You are seeing it because its timestamp is newer than your last-seen snapshot.",
   ];
   if (isExtreme) {
-    caveats.push(
-      `"52-week" is actually a ${stats.historyDays ?? 90}-day window — that is the depth of history the app holds, and it is labelled honestly rather than padded to 52 weeks.`,
-    );
+    caveats.push(fiftyTwoWeekWindowCaveat(stats.historyDays));
     caveats.push(
       "Repeat highs in the same direction are collapsed to the most recent one: making a new high five polls in a row is one fact, not five.",
     );
   } else {
-    caveats.push(
-      "News, rating and corporate-action events are demo-triggered through the admin control panel — there is no news provider behind them.",
-    );
+    caveats.push(...feedCaveats(eventType, source, payload));
   }
 
   return {
@@ -339,11 +410,12 @@ export function explainDiscreteEvent(args: {
       ? "52-week extreme recorded since your last visit"
       : `${eventType.replace(/_/g, " ").toLowerCase()} recorded since your last visit`,
     ruleSource: isExtreme
-      ? "backend/src/ingestion/market-state-writer.ts (detection) + backend/src/modules/diff/diff.engine.ts (selection)"
-      : "backend/src/modules/admin/admin.routes.ts (trigger) + backend/src/modules/diff/diff.engine.ts (selection)",
+      ? "backend/src/application/ingestion/market-state-writer.ts (detection) + backend/src/domain/diff/diff.engine.ts (selection)"
+      : `${discreteRuleSource(source)} + backend/src/domain/diff/diff.engine.ts (selection)`,
     summary: `Recorded ${eventTime.toISOString()}, which is after your last-seen snapshot (${baseline.lastSeenAt.toISOString()}), so it is new to you. Severity ${severity} was assigned when the event was written.`,
     inputs: [
       { label: "Event recorded at", value: eventTime.toISOString(), source: "SymbolEvent.eventTime (Postgres)" },
+      { label: "Recorded by", value: source ?? "unknown", source: "SymbolEvent.source (Postgres)" },
       {
         label: "Your last-seen snapshot",
         value: baseline.lastSeenAt.toISOString(),

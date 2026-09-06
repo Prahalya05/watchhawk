@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeSymbolDiff } from "../../../../src/domain/diff/diff.engine";
 import { GAP_RATIO_THRESHOLDS, VOLUME_RATIO_THRESHOLDS, Z_THRESHOLDS } from "../../../../src/domain/diff/scoring";
+import { ADMIN_DEMO_SOURCE } from "../../../../src/domain/diff/explain";
 import type {
   DiscreteEventInput,
   MarketStateSnapshot,
@@ -213,24 +214,60 @@ describe("discrete events", () => {
     expect(event.explanation.caveats.join(" ")).toMatch(/classified when it was recorded/i);
   });
 
-  it("discloses that news has no provider behind it", () => {
-    const event = diff(makeState(), makeStats(), makeBaseline(), [newsEvent]).events[0];
-    expect(event.explanation.caveats.join(" ")).toMatch(/demo-triggered/i);
+  // Provenance is disclosed from what was actually recorded, never asserted for the
+  // category. Blanket-labelling every news/rating/corporate-action event demo-triggered
+  // was true when only the control panel could raise them; now that a real feed can, the
+  // same blanket claim would describe a genuine dividend as a fabrication.
+  it("names the feed when a real one recorded the event", () => {
+    const event = diff(makeState(), makeStats(), makeBaseline(), [{ ...newsEvent, source: "GDELT" }]).events[0];
+
+    const caveats = event.explanation.caveats.join(" ");
+    expect(caveats).toMatch(/live feed \(GDELT\)/i);
+    expect(caveats).not.toMatch(/demonstration/i);
   });
 
-  it("reports the real history window on a 52-week extreme instead of the label", () => {
-    // The window is 90 days, and the panel says so at the exact moment someone reads
-    // "52-week" and might otherwise assume a year of history.
-    const event = diff(makeState(), makeStats({ historyDays: 90 }), makeBaseline(), [
-      {
-        eventType: "FIFTY_TWO_WEEK_EXTREME",
-        severity: "CRITICAL",
-        eventTime: new Date(NOW - HOUR),
-        payload: { direction: "HIGH" },
-      },
-    ]).events[0];
+  it("discloses a control-panel trigger as not being a real headline", () => {
+    const event = diff(makeState(), makeStats(), makeBaseline(), [{ ...newsEvent, source: ADMIN_DEMO_SOURCE }])
+      .events[0];
 
-    expect(event.explanation.caveats.join(" ")).toMatch(/90-day window/);
+    expect(event.explanation.caveats.join(" ")).toMatch(/admin control panel for demonstration/i);
+  });
+
+  it("admits ignorance for an event recorded before provenance was tracked", () => {
+    // The honest answer for a legacy row is "unknown", not a guess in either direction.
+    const event = diff(makeState(), makeStats(), makeBaseline(), [newsEvent]).events[0];
+
+    const caveats = event.explanation.caveats.join(" ");
+    expect(caveats).toMatch(/predates provenance tracking/i);
+    expect(caveats).not.toMatch(/live feed/i);
+  });
+
+  const extremeEvent: DiscreteEventInput = {
+    eventType: "FIFTY_TWO_WEEK_EXTREME",
+    severity: "CRITICAL",
+    eventTime: new Date(NOW - HOUR),
+    payload: { direction: "HIGH" },
+  };
+
+  it("says the extreme came from a full rolling 52-week window when it did", () => {
+    const event = diff(makeState(), makeStats({ historyDays: 248 }), makeBaseline(), [extremeEvent]).events[0];
+    const caveats = event.explanation.caveats.join(" ");
+
+    expect(caveats).toMatch(/rolling 52-week window/);
+    expect(caveats).toMatch(/248 daily bars/);
+    // The property that distinguishes a real 52-week high from the high-water mark this
+    // replaced: old extremes leave the window, so the figure can go down.
+    expect(caveats).toMatch(/can fall as well as rise/);
+  });
+
+  it("discloses a window that is genuinely shorter than 52 weeks rather than calling it one", () => {
+    // A recently-added symbol, or one the provider only partly served. The number is the
+    // symbol's real depth, and the caveat says outright that it is not a full 52 weeks.
+    const event = diff(makeState(), makeStats({ historyDays: 90 }), makeBaseline(), [extremeEvent]).events[0];
+    const caveats = event.explanation.caveats.join(" ");
+
+    expect(caveats).toMatch(/only 90 daily bars/);
+    expect(caveats).toMatch(/rather than a true 52 weeks/);
   });
 
   it("puts the recorded payload into the inputs so the raw record is visible", () => {

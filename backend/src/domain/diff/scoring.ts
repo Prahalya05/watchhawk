@@ -20,6 +20,46 @@ export const Z_THRESHOLDS: SeverityThresholds = { critical: 3, notable: 1.5, min
 export const VOLUME_RATIO_THRESHOLDS: SeverityThresholds = { critical: 3, notable: 2, minor: 1.5 };
 export const GAP_RATIO_THRESHOLDS: SeverityThresholds = { critical: 3, notable: 2, minor: 1.25 };
 
+// Feed-sourced discrete events are scored once, when they are ingested, from measurable
+// properties of the item — never from a reading of what it says.
+//
+// DIVIDEND_YIELD_THRESHOLDS: a dividend matters to a returning user mainly because the
+// price drops by roughly the dividend on the ex-date, so the yield against the current
+// price is the size of the thing they are about to see and fail to explain.
+export const DIVIDEND_YIELD_THRESHOLDS: SeverityThresholds = { critical: 0.03, notable: 0.01, minor: 0.002 };
+
+// News is scored on *how much* is being published about a symbol inside
+// NEWS_BURST_WINDOW_MS, never on what any of it says. Judging a headline's importance from
+// its text is exactly the guess this codebase refuses to make elsewhere (see the command
+// parser), and a confidently wrong CRITICAL on a misread headline is worse than an honest
+// MINOR. Publication volume is real and countable; the "why?" panel says outright that it
+// is the only signal used.
+//
+// The count is measured against the symbol's *own* normal, not an absolute bar — the same
+// reason PRICE_MOVE is a z-score and VOLUME_SPIKE is a ratio. HDFCBANK draws several
+// stories on a completely uneventful morning; a mid-cap drawing the same number is the
+// story. An absolute threshold would have pinned every mega-cap at CRITICAL permanently,
+// which is alert fatigue wearing a severity badge.
+export const NEWS_BURST_RATIO_THRESHOLDS: SeverityThresholds = { critical: 3, notable: 2, minor: 1 };
+export const NEWS_BURST_WINDOW_MS = 6 * 60 * 60 * 1000;
+export const NEWS_BASELINE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Floor on the expected count, for the same reason MIN_STDEV_RETURN_20D floors volatility:
+// a symbol that normally draws no coverage would otherwise divide by ~0 and rate its first
+// headline in a week CRITICAL. With the floor, a quiet symbol needs three stories in six
+// hours to reach CRITICAL, which is a genuine burst by any reading.
+export const MIN_EXPECTED_NEWS_PER_WINDOW = 1;
+
+// A split restates every share count and quoted price the user remembers, so it is always
+// the loudest of these. Not a threshold ladder because there is nothing to measure
+// against: a 2:1 and a 5:1 both invalidate the number the user last looked at.
+export const SPLIT_SEVERITY: Severity = "CRITICAL";
+
+// Rating changes are scored by how far the grade moved on the analyst ladder below, and
+// in which direction. An initiation has no "from" to measure against.
+export const RATING_LADDER = ["Sell", "Underperform", "Hold", "Outperform", "Buy"] as const;
+export const RATING_STEP_THRESHOLDS: SeverityThresholds = { critical: 3, notable: 2, minor: 1 };
+
 export function severityFromZ(absZ: number): Severity {
   return severityFromRatio(absZ, Z_THRESHOLDS);
 }

@@ -65,11 +65,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
       - run: npm ci --prefix backend
+      - run: npm ci --prefix frontend
       # The inner rings touch no socket, so this tier needs no services and finishes
       # in seconds. tests/setup/env.ts supplies the environment config/env.ts demands.
       - run: npm run test:unit --prefix backend
+      # The frontend's mirror image: lib/ is pure, so it runs in the same node process
+      # with no DOM and no browser. Anything needing a rendered component would belong
+      # in a new tier, not bolted onto this one.
+      - run: npm run test --prefix frontend
 
   test-integration:
     name: 4. integration tests

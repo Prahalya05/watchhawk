@@ -142,8 +142,12 @@ or invalid required variable.
 - A successful register or login returns a JWT valid for 7 days. The frontend stores it
   in `localStorage` and sends it as `Authorization: Bearer <token>`.
 - Every `/api` route except `/api/auth/register` and `/api/auth/login` requires the
-  token. `/api/admin/*` uses the `X-Admin-Key` header instead. The WebSocket upgrade
-  takes the token as `?token=` (a browser `WebSocket` cannot set headers).
+  token. `/api/admin/*` uses the `X-Admin-Key` header instead.
+- The WebSocket never sees the session token. A browser `WebSocket` cannot set an
+  `Authorization` header, so the client calls `POST /api/auth/ws-ticket` first and passes
+  the returned ticket in the subprotocol list on the upgrade. The ticket lives 30 seconds,
+  works once, and only its SHA-256 is stored. Nothing credential-shaped ends up in a URL,
+  an access log, or a `Referer`.
 - An expired, tampered, or deleted-user token returns `401`; the frontend clears the
   session and returns to login with an explanation. The error banner distinguishes an
   unreachable server ("Can't reach the server at …") from a real rejection ("An account
@@ -158,6 +162,11 @@ staleness. Overrides are applied by `market-state-writer.ts` on the next poll cy
 regardless of which provider is currently authoritative, so the panel works in both
 `live` and `replay` mode. It exists because real market movement cannot be scripted for a
 presentation.
+
+News and corporate-action events also arrive on their own from real feeds (see
+`EVENT_FEED_ENABLED` in `backend/.env.example`). Events the panel creates are recorded
+with `source = ADMIN_DEMO` and the "why?" panel says so outright, so a demo trigger is
+never mistaken for a real headline sitting beside it.
 
 Endpoints (all requiring `X-Admin-Key`): `POST /api/admin/trigger`,
 `GET /api/admin/symbols`, `POST /api/admin/recompute-stats`.

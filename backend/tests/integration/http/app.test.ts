@@ -84,6 +84,22 @@ describe("authentication boundary", () => {
     expect(res.status).toBe(401);
   });
 
+  // The WS ticket endpoint is the only way to obtain a socket credential now, so an
+  // unauthenticated caller reaching it would hand out exactly what moving the JWT out of
+  // the socket URL was meant to protect. Rejected by requireAuth, before Redis.
+  it("refuses to mint a WebSocket ticket without a session", async () => {
+    const res = await fetch(`${baseUrl}/api/auth/ws-ticket`, { method: "POST" });
+    expect(res.status).toBe(401);
+  });
+
+  it("refuses to mint a WebSocket ticket for a token this server did not sign", async () => {
+    const res = await fetch(`${baseUrl}/api/auth/ws-ticket`, {
+      method: "POST",
+      headers: { authorization: "Bearer not.a.real.token" },
+    });
+    expect(res.status).toBe(401);
+  });
+
   it("rejects an admin trigger with no admin key", async () => {
     const res = await fetch(`${baseUrl}/api/admin/trigger`, {
       method: "POST",

@@ -20,3 +20,17 @@ export async function me(): Promise<AuthUser> {
   const { data } = await apiClient.get<AuthUser>("/auth/me");
   return data;
 }
+
+interface WsTicket {
+  ticket: string;
+  expiresInSeconds: number;
+}
+
+// The WebSocket's credential. Fetched fresh for every connection attempt, including
+// reconnects — a ticket is single-use and lives about half a minute, so there is nothing
+// worth caching here. The session token travels in the Authorization header on this call
+// and never reaches the socket itself.
+export async function requestWsTicket(): Promise<string> {
+  const { data } = await apiClient.post<WsTicket>("/auth/ws-ticket");
+  return data.ticket;
+}

@@ -9,6 +9,7 @@ import {
   loginUser,
   registerUser,
 } from "../../../application/auth/auth.service";
+import { issueWsTicket } from "../../../application/auth/ws-ticket.service";
 
 export const authRouter = Router();
 
@@ -67,5 +68,23 @@ authRouter.get(
     // as a transient fetch failure and keep retrying with.
     if (!user) return res.status(401).json({ error: "USER_NOT_FOUND" });
     res.json(user);
+  }),
+);
+
+// Mints the credential the WebSocket upgrade actually uses. POST rather than GET because
+// each call creates something: a GET that mints a single-use secret is cacheable by
+// anything between here and the client, and browsers prefetch GETs.
+//
+// This is the whole reason the session JWT no longer travels in the socket's URL — the
+// exchange happens here, over a normal authenticated request where the token sits in an
+// Authorization header. The response is explicitly uncacheable for the same reason the
+// method is POST.
+authRouter.post(
+  "/ws-ticket",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const ticket = await issueWsTicket(req.auth!);
+    res.set("Cache-Control", "no-store");
+    res.status(201).json(ticket);
   }),
 );

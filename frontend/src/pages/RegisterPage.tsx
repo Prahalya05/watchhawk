@@ -3,12 +3,15 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getApiErrorMessage } from "../api/errors";
+import AuthLayout, { AuthField } from "../components/AuthLayout";
+import Button from "../components/ui/Button";
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Only a genuine 409 offers the "log in instead" shortcut — the old page implied it
   // on every failure, including a backend that wasn't running.
@@ -32,32 +35,51 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
-      <h1 className="mb-1 text-xl font-bold text-gray-100">Smart Watchlist</h1>
-      <p className="mb-6 text-sm text-gray-500">Create an account.</p>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
+    <AuthLayout
+      title="Create an account"
+      subtitle="A watchlist that tells you what moved while you were away."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link to="/login" className="text-gray-300 underline hover:text-white">
+            Log in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <AuthField
+          label="Email"
           type="email"
           required
           autoComplete="email"
-          placeholder="Email"
+          placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-100"
         />
-        <input
-          type="password"
-          required
-          minLength={8}
-          maxLength={72}
-          autoComplete="new-password"
-          placeholder="Password (min 8 characters)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-100"
-        />
+        <div className="relative">
+          <AuthField
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            required
+            minLength={8}
+            maxLength={72}
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            hint="8–72 characters."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-[30px] text-[11px] font-medium text-gray-500 hover:text-gray-300"
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </div>
         {error && (
-          <p className="text-xs text-red-400" role="alert">
+          <p className="text-xs text-severity-critical" role="alert">
             {error}
             {emailTaken && (
               <>
@@ -69,20 +91,10 @@ export default function RegisterPage() {
             )}
           </p>
         )}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white disabled:opacity-50"
-        >
+        <Button type="submit" variant="primary" loading={submitting} className="w-full">
           {submitting ? "Creating account…" : "Register"}
-        </button>
+        </Button>
       </form>
-      <p className="mt-4 text-xs text-gray-500">
-        Already have an account?{" "}
-        <Link to="/login" className="text-gray-300 underline">
-          Log in
-        </Link>
-      </p>
-    </div>
+    </AuthLayout>
   );
 }

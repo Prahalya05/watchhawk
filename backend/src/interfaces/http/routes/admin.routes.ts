@@ -6,6 +6,7 @@ import { writeDiscreteEvent } from "../../../application/ingestion/market-state-
 import { readMarketStates } from "../../../infrastructure/market-data/read-state";
 import { getRefcount } from "../../../application/ingestion/subscription-manager";
 import { SYMBOL_UNIVERSE } from "../../../domain/market/symbol-universe";
+import { ADMIN_DEMO_SOURCE } from "../../../domain/diff/explain";
 import { runStatsJob } from "../../../application/stats/stats-job";
 import { asyncHandler } from "../async-handler";
 
@@ -44,7 +45,12 @@ adminRouter.post(
     const upperSymbol = symbol.toUpperCase();
 
     if (eventType === "NEWS" || eventType === "RATING_CHANGE" || eventType === "CORPORATE_ACTION") {
-      await writeDiscreteEvent(upperSymbol, eventType, severity ?? "NOTABLE", payload ?? {});
+      // Explicitly labelled ADMIN_DEMO. Real feed items now land in the same table (see
+      // event-feed-ingestor.ts), and the "why?" panel tells the two apart by this field —
+      // an unlabelled demo trigger would read to the user as a genuine headline.
+      await writeDiscreteEvent(upperSymbol, eventType, severity ?? "NOTABLE", payload ?? {}, {
+        source: ADMIN_DEMO_SOURCE,
+      });
     } else {
       enqueueCommand({ symbol: upperSymbol, type: eventType as AdminCommandType, severity, payload });
     }

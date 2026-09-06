@@ -2,12 +2,15 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getApiErrorMessage } from "../api/errors";
+import AuthLayout, { AuthField } from "../components/AuthLayout";
+import Button from "../components/ui/Button";
 
 export default function LoginPage() {
   const { login, user, sessionMessage, clearSessionMessage } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,52 +36,60 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
-      <h1 className="mb-1 text-xl font-bold text-gray-100">Smart Watchlist</h1>
-      <p className="mb-6 text-sm text-gray-500">Log in to your account.</p>
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Log in to your account."
+      footer={
+        <>
+          No account?{" "}
+          <Link to="/register" className="text-gray-300 underline hover:text-white">
+            Register
+          </Link>
+        </>
+      }
+    >
       {sessionMessage && !error && (
-        <p className="mb-3 rounded-md border border-amber-900 bg-amber-950/40 px-3 py-2 text-xs text-amber-300">
+        <p className="mb-3 rounded-lg border border-hairline border-l-2 border-l-severity-notable bg-severity-notable/5 px-3 py-2 text-xs text-severity-notable">
           {sessionMessage}
         </p>
       )}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <AuthField
+          label="Email"
           type="email"
           required
           autoComplete="email"
-          placeholder="Email"
+          placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-100"
         />
-        <input
-          type="password"
-          required
-          autoComplete="current-password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-100"
-        />
+        <div className="relative">
+          <AuthField
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            required
+            autoComplete="current-password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-[30px] text-[11px] font-medium text-gray-500 hover:text-gray-300"
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </div>
         {error && (
-          <p className="text-xs text-red-400" role="alert">
+          <p className="text-xs text-severity-critical" role="alert">
             {error}
           </p>
         )}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white disabled:opacity-50"
-        >
+        <Button type="submit" variant="primary" loading={submitting} className="w-full">
           {submitting ? "Logging in…" : "Log in"}
-        </button>
+        </Button>
       </form>
-      <p className="mt-4 text-xs text-gray-500">
-        No account?{" "}
-        <Link to="/register" className="text-gray-300 underline">
-          Register
-        </Link>
-      </p>
-    </div>
+    </AuthLayout>
   );
 }

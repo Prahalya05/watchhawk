@@ -7,7 +7,13 @@ import AdminDemoPage from "./pages/AdminDemoPage";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="p-8 text-gray-400">Loading…</div>;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-hairline-strong border-t-accent" />
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }

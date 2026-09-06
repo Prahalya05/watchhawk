@@ -1,8 +1,9 @@
 import type { WatchlistUnavailable } from "../types";
+import Tag from "./ui/Tag";
 
 const LABELS: Record<WatchlistUnavailable["reason"], string> = {
-  DELISTED: "NOT TRACKED",
-  NO_DATA: "NO DATA YET",
+  DELISTED: "Not tracked",
+  NO_DATA: "No data yet",
 };
 
 // The visible half of the fix for silently-dropped rows. A watchlist that quietly
@@ -11,11 +12,8 @@ const LABELS: Record<WatchlistUnavailable["reason"], string> = {
 // made here, so the two can never drift apart.
 export default function UnavailableNotice({ unavailable }: { unavailable: WatchlistUnavailable }) {
   return (
-    <span
-      className="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-300"
-      title={unavailable.message}
-    >
+    <Tag tone="neutral" title={unavailable.message}>
       {LABELS[unavailable.reason]}
-    </span>
+    </Tag>
   );
 }

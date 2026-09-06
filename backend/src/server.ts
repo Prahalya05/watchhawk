@@ -2,7 +2,7 @@ import { createServer } from "http";
 import { createApp } from "./interfaces/http/app";
 import { env, effectiveMarketDataMode } from "./config/env";
 import { prisma } from "./infrastructure/db/prisma";
-import { reconcileRefcounts } from "./application/ingestion/subscription-manager";
+import { reconcileRefcountsFromDatabase } from "./application/ingestion/subscription-manager";
 import { backfillMissingHistory } from "./application/market-data/historical-backfill";
 import { compositeProvider } from "./application/market-data/composite-provider";
 import { attachWsServer } from "./interfaces/ws/ws.server";
@@ -14,9 +14,9 @@ async function main() {
   // Required startup step, not optional polish: Redis holds no durable state, so
   // refcounts must be rebuilt from the durable WatchlistItem table on every boot, or the
   // shared-cache "only poll watched symbols" architecture silently breaks after any
-  // Redis restart.
-  const grouped = await prisma.watchlistItem.groupBy({ by: ["symbol"], _count: { symbol: true } });
-  await reconcileRefcounts(new Map(grouped.map((g) => [g.symbol, g._count.symbol])));
+  // Redis restart. startScheduledJobs() below repeats it periodically, for drift that
+  // appears while the process is up rather than across a restart.
+  await reconcileRefcountsFromDatabase();
 
   // Replay-mode backfill is synthetic and instant, so it's awaited — the app is fully
   // seeded before it serves a single request. Live-mode backfill fetches from Yahoo
@@ -59,6 +59,21 @@ async function main() {
     backfillMissingHistory().catch((err) => console.error("[server] background history backfill failed:", err));
   }
 }
+
+// Last line of defence, not a substitute for handling errors where they happen. Node's
+// default for an uncaught exception is to print and exit, which is the right outcome —
+// this only makes the exit deliberate and legible, so a crash leaves a labelled line in
+// the log rather than a bare stack trace. An unhandled rejection is not treated as fatal
+// for the same reason the poll loop catches per-provider: a vendor call that rejects
+// somewhere unawaited should not take ingestion down with it.
+process.on("uncaughtException", (err) => {
+  console.error("[server] uncaught exception — exiting:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[server] unhandled promise rejection:", reason);
+});
 
 main().catch((err: NodeJS.ErrnoException) => {
   if (err?.code === "EADDRINUSE") {

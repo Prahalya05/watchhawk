@@ -81,9 +81,17 @@ the diff already shows what.
 | Tier                       | Location                     | Needs                                               |
 | -------------------------- | ---------------------------- | --------------------------------------------------- |
 | `npm run test:unit`        | `backend/tests/unit/`        | nothing — no I/O at all                             |
+|                            | `frontend/tests/unit/`       | nothing — no DOM, no browser                        |
 | `npm run test:integration` | `backend/tests/integration/` | nothing today; boots the real Express app over HTTP |
 
-Tests mirror the ring they cover, so `tests/unit/domain/diff/` tests `src/domain/diff/`.
+Tests mirror the ring they cover, so `tests/unit/domain/diff/` tests `src/domain/diff/`, and
+`frontend/tests/unit/lib/` tests `frontend/src/lib/`.
+
+The frontend tier covers `src/lib/` only, and deliberately: those are the pure functions the
+dashboard is derived from — money and time formatting, the filter/sort/summary pipeline, the
+event and severity vocabulary — and their failure mode is that the page still renders, just
+wrong. Everything else in `frontend/src/` is a React component, which cannot be tested
+without a DOM; adding one would mean a new tier with jsdom in it, not a wider `unit/`.
 
 The environment that `config/env.ts` validates at import time is supplied by
 `tests/setup/env.ts`, registered as a Vitest `setupFile` — you do not need to import it.

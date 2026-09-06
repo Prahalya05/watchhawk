@@ -17,6 +17,14 @@ const envSchema = z.object({
   STALE_THRESHOLD_MS: z.coerce.number().int().positive().default(120000),
   PORT: z.coerce.number().int().positive().default(4000),
 
+  // Real NEWS / CORPORATE_ACTION ingestion (see application/ingestion/event-feed-ingestor.ts).
+  // "auto" follows the market-data mode: real headlines beside synthetic prices is a
+  // confusing demo, and polling two vendors for 34 symbols nobody is watching live is
+  // spend with no reader. "on" forces it in replay mode too, which is how you exercise the
+  // feed path without a live market; "off" disables it entirely.
+  EVENT_FEED_ENABLED: z.enum(["auto", "on", "off"]).default("auto"),
+  EVENT_FEED_INTERVAL_MS: z.coerce.number().int().positive().default(900000),
+
   // Gemini. Entirely optional: with no key the assistant falls back to its deterministic
   // command parser and its deterministic explanation text, exactly as the market-data
   // layer falls back to replay. Nothing in the product requires an LLM to function.
@@ -48,3 +56,9 @@ export const effectiveMarketDataMode: "live" | "replay" =
 // configuration, not an error, so it is resolved once here rather than re-checked at
 // every call site.
 export const llmEnabled: boolean = env.GEMINI_API_KEY.length > 0;
+
+// Resolved once, same as the two above, so no call site has to re-derive what "auto"
+// means. Neither feed needs a key — the cost of running it is outbound requests, not
+// credits, which is why the default is "follow the mode" rather than "off until asked".
+export const eventFeedEnabled: boolean =
+  env.EVENT_FEED_ENABLED === "on" || (env.EVENT_FEED_ENABLED === "auto" && effectiveMarketDataMode === "live");

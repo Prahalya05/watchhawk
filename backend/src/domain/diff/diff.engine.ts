@@ -115,6 +115,7 @@ export function computeSymbolDiff(
         severity: e.severity,
         eventTime: e.eventTime,
         payload: e.payload,
+        source: e.source,
         state,
         stats,
         baseline,

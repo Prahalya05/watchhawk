@@ -1,50 +1,48 @@
-import { redis } from "../../infrastructure/db/redis";
 import { prisma } from "../../infrastructure/db/prisma";
+import { computeSymbolStats } from "../../domain/market/history-window";
+import { readIntradayBar } from "../market-data/history.store";
 import type { DailyBar } from "../../domain/ports/market-data.port";
 
-export async function readHistory(symbol: string): Promise<DailyBar[]> {
-  const raw = await redis.zrange(`market:history:${symbol}`, 0, -1);
-  return raw.map((r) => JSON.parse(r) as DailyBar);
-}
+export { readHistory, readWindow } from "../market-data/history.store";
 
 // Shared by historical-backfill.ts (first computation) and stats-job.ts (periodic
-// recompute) so both paths derive SymbolStats the same way.
-export async function computeAndStoreStats(symbol: string, bars: DailyBar[]): Promise<void> {
-  if (bars.length === 0) return;
-  const last20 = bars.slice(-20);
-  const avgVolume20d = average(last20.map((b) => b.volume));
+// recompute) so both paths derive SymbolStats the same way. The arithmetic itself lives
+// in domain/market/history-window.ts; this function is the I/O around it.
+export async function computeAndStoreStats(symbol: string, bars: DailyBar[], now: number = Date.now()): Promise<void> {
+  // The in-progress bar is read here rather than passed in because every caller would
+  // otherwise have to remember to fetch it, and forgetting would silently reintroduce the
+  // bug this replaced: extremes that stop at the last closed session.
+  const intradayBar = await readIntradayBar(symbol);
+  const computed = computeSymbolStats({ bars, intradayBar, now });
+  if (!computed) return;
 
-  const dailyReturns: number[] = [];
-  const overnightGaps: number[] = [];
-  for (let i = 1; i < last20.length; i++) {
-    dailyReturns.push((last20[i].close - last20[i - 1].close) / last20[i - 1].close);
-    overnightGaps.push(Math.abs((last20[i].open - last20[i - 1].close) / last20[i - 1].close));
-  }
-  const stdevReturn20d = Math.max(stdev(dailyReturns), 0.0001);
-  const avgOvernightGapPct = Math.max(average(overnightGaps), 0.0001);
+  const { avgVolume20d, stdevReturn20d, avgOvernightGapPct, high52w, low52w, historyDays } = computed;
 
-  const high52w = Math.max(...bars.map((b) => b.high));
-  const low52w = Math.min(...bars.map((b) => b.low));
-
+  // high52w/low52w ARE recomputed here, which is a reversal of the previous behaviour and
+  // the point of the change. They used to be excluded because a recompute over a 90-day
+  // history could only shrink a genuine 52-week extreme — the window was too short to
+  // hold the figure it was overwriting. With a real rolling 52-week window that argument
+  // inverts: refusing to recompute is what is now wrong, because a ratchet that only ever
+  // rises never lets last spring's high age out, and the "52-week high" stays pinned to a
+  // price the last 52 weeks no longer contain.
+  //
+  // Nothing live is lost by recomputing: the in-progress bar folded in above carries
+  // today's extremes, so a high set by a price that printed seconds ago survives the pass
+  // that would otherwise drop it.
+  // computedAt is stamped explicitly on update too. The column defaults to now() on
+  // insert only, so leaving it out meant every recompute kept the row's *creation* time —
+  // and the "why?" panel quotes that value verbatim as when the baseline was computed.
   await prisma.symbolStats.upsert({
     where: { symbol },
-    create: { symbol, avgVolume20d, stdevReturn20d, high52w, low52w, avgOvernightGapPct, historyDays: bars.length },
-    update: { avgVolume20d, stdevReturn20d, avgOvernightGapPct, historyDays: bars.length },
-    // Note: high52w/low52w are NOT overwritten on periodic recompute — they're the
-    // running extremes market-state-writer.ts maintains live as new prices arrive
-    // (see checkFiftyTwoWeekExtreme). A batch recompute from a limited history window
-    // could otherwise incorrectly shrink them back down.
+    create: { symbol, avgVolume20d, stdevReturn20d, high52w, low52w, avgOvernightGapPct, historyDays },
+    update: {
+      avgVolume20d,
+      stdevReturn20d,
+      high52w,
+      low52w,
+      avgOvernightGapPct,
+      historyDays,
+      computedAt: new Date(now),
+    },
   });
-}
-
-function average(values: number[]): number {
-  if (values.length === 0) return 0;
-  return values.reduce((a, b) => a + b, 0) / values.length;
-}
-
-function stdev(values: number[]): number {
-  if (values.length < 2) return 0;
-  const mean = average(values);
-  const variance = average(values.map((v) => (v - mean) ** 2));
-  return Math.sqrt(variance);
 }
