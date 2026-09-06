@@ -39,6 +39,70 @@ returns it as a list of typed, severity-scored events.
   explainer. Both run on deterministic code by default and use Google Gemini only when a
   key is configured; neither feature requires the LLM to function.
 
+## Architecture
+
+**System context** — what this is and what it talks to:
+
+```mermaid
+flowchart TB
+    user["<b>Trader</b><br/><i>[Person]</i><br/>Watches a set of NSE symbols and wants<br/>to know what changed since they last looked"]
+
+    system["<b>Smart Market Watchlist</b><br/><i>[Software System]</i><br/>Stores what each user last saw per symbol<br/>and reports the difference as typed,<br/>severity-scored events"]
+
+    yahoo["<b>Yahoo Finance</b><br/><i>[External System]</i><br/>Primary live quotes and daily history"]
+    twelve["<b>Twelve Data</b><br/><i>[External System]</i><br/>Secondary quotes, used as a per-cycle cross-check"]
+    gemini["<b>Google Gemini</b><br/><i>[External System]</i><br/>Optional. Command parsing and event explanation"]
+
+    user -->|"Reads watchlist, acknowledges changes,<br/>issues commands <i>[HTTPS + WebSocket]</i>"| system
+    system -->|"Polls quotes for watched symbols only <i>[HTTPS]</i>"| yahoo
+    system -->|"Cross-checks the primary price <i>[HTTPS]</i>"| twelve
+    system -.->|"Interprets a command,<br/>explains an event <i>[HTTPS]</i>"| gemini
+
+    classDef person fill:#08427b,stroke:#052e56,color:#fff
+    classDef internal fill:#1168bd,stroke:#0b4884,color:#fff
+    classDef external fill:#999999,stroke:#6b6b6b,color:#fff
+    class user person
+    class system internal
+    class yahoo,twelve,gemini external
+```
+
+**Containers** — the separately runnable moving parts:
+
+```mermaid
+flowchart TB
+    user["<b>Trader</b><br/><i>[Person]</i>"]
+
+    subgraph system ["Smart Market Watchlist"]
+        spa["<b>Dashboard</b><br/><i>[Container: React 18 + Vite 5]</i><br/>Watchlist table, event badges,<br/>explanation drawer, command bar"]
+        api["<b>API and Ingestion Process</b><br/><i>[Container: Node 20, Express 4, ws]</i><br/>Serves the HTTP API, owns the WebSocket<br/>fan-out, runs the market-data poll loop<br/>and the background jobs"]
+        pg[("<b>PostgreSQL 16</b><br/><i>[Container: via Prisma 5]</i><br/>Users, watchlist items, per-user<br/>snapshots, symbol stats, events")]
+        redis[("<b>Redis 7</b><br/><i>[Container: via ioredis]</i><br/>market:state cache, symbol refcounts,<br/>pub/sub channel, LLM budget counters")]
+    end
+
+    yahoo["<b>Yahoo Finance</b><br/><i>[External System]</i>"]
+    twelve["<b>Twelve Data</b><br/><i>[External System]</i>"]
+    gemini["<b>Google Gemini</b><br/><i>[External System]</i>"]
+
+    user -->|"<i>[HTTPS]</i>"| spa
+    spa -->|"JSON, bearer JWT <i>[HTTPS]</i>"| api
+    spa <-->|"Live ticks and events <i>[WebSocket]</i>"| api
+    api -->|"Durable per-user state <i>[TCP / Prisma]</i>"| pg
+    api -->|"Shared quote cache,<br/>refcounts, pub/sub <i>[TCP / RESP]</i>"| redis
+    api -->|"<i>[HTTPS]</i>"| yahoo
+    api -->|"<i>[HTTPS]</i>"| twelve
+    api -.->|"<i>[HTTPS]</i>"| gemini
+
+    classDef person fill:#08427b,stroke:#052e56,color:#fff
+    classDef container fill:#438dd5,stroke:#2e6295,color:#fff
+    classDef external fill:#999999,stroke:#6b6b6b,color:#fff
+    class user person
+    class spa,api,pg,redis container
+    class yahoo,twelve,gemini external
+```
+
+The component-level diagram and the two sequence diagrams (read/ack flow, one ingestion
+poll cycle) are in [docs/diagrams.md](docs/diagrams.md).
+
 ## Repository structure
 
 The backend is arranged as four concentric rings, ordered by how often the code inside
@@ -99,10 +163,6 @@ imports Express, or a route reaches past a service into Prisma.
         ├── components/      Watchlist table, event badge, explain drawer, command bar
         └── types/           Shared response types mirroring the backend
 ```
-
-Diagrams of the same structure at three zoom levels — system context, containers, and the
-components inside the API process — are in [docs/diagrams.md](docs/diagrams.md), written in
-Mermaid and committed alongside the code so they can change in the same pull request.
 
 ## Technology
 
